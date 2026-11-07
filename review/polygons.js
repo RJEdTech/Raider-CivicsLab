@@ -24,7 +24,7 @@ polygons:{
    choices:['About 77%: nothing changes','About 60%','About 40%'],correct:1,
    steps:['Every shape with only same-type neighbors (a third of the town) is now unhappy and moves.','Landing at random spots spreads them out, and the index falls fast.','After 150 rounds the town sits at about 60%, with a few shapes still moving. The share with no unlike neighbor drops from 33% to under 1%.'],
    lab:{set:{start:'split',bias:33,hi:95},act:'end',look:'Read <b>Same-type neighbors</b> and <b>Shapes with no neighbor unlike them</b>.'},verify:[['seg',59.84,0.05]]},
-  {id:'index',kind:'test',lvl:'ap',
+  {id:'index',kind:'test',lvl:'bio',
    q:'Three shapes: one has 2 of 4 neighbors like it, one has 3 of 3, and one has 1 of 5. What is their segregation index (the average same-type share), to the nearest 0.1%?',
    num:{ans:56.7,tol:0.1,unit:'%'},
    steps:['Shares: 2 ÷ 4 = 50%, 3 ÷ 3 = 100%, 1 ÷ 5 = 20%.','Average: (50 + 100 + 20) ÷ 3 = 170 ÷ 3.','≈ 56.7%. Each shape counts equally, however many neighbors it has.']},

@@ -51,6 +51,11 @@ const yr=sim=>sim.p.year==='1990'?1990:2024;
 const truth=sim=>BELOW[yr(sim)][sim.p.line]*100;
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
 const shown=sim=>!!(sim.p.show||(GS(sim)&&GS(sim).m));
+const revealed=sim=>!!(GS(sim)&&GS(sim).m);
+/* "Your turn": per 100 = people below the line ÷ world population × 100, with the counts rounded to the million as a student would read them. */
+const below=sim=>{const y=yr(sim);return sim.p.line==='3'?POOR3[y]:BELOW[y][sim.p.line]*POP[y];};
+const mil=v=>Math.round(v).toLocaleString('en-US');
+const per100=sim=>Math.round(1000*Math.round(below(sim))/Math.round(POP[yr(sim)]))/10;
 const f1=v=>v.toFixed(1);
 const big=m=>m>=1000?(m/1000).toFixed(2)+' billion':Math.round(m)+' million';
 const usd=v=>'$'+Math.round(v).toLocaleString('en-US');
@@ -91,7 +96,8 @@ function drawPeople(sim,ctx,k){const sh=shown(sim),y=yr(sim),G=GS(sim),L=LINES[s
   txt(ctx,`${e.n}  ${e.l}`,rx+30,yy-(e.p3!=null&&!ph?6:0),{s:13*k,w:700,b:'middle'});
   if(e.p3!=null&&!ph)txt(ctx,`${e.p3<0.05?'Under 0.1':f1(e.p3)} of the 100 live below $3.00`,rx+30,yy+12*k,{s:12*k,b:'middle',c:PAL['cv-soft']});});
  const by=gy+30*k+legend.length*lh+8;
- if(sim.p.colorby!=='region'&&by+14*k<H){const r=truth(sim);txt(ctx,`Below ${L.s}: ${f1(r)} of 100`+(G&&G.g?` (your gut: ${Math.round(G.g.guess)})`:''),rx,by+12*k,{s:13*k,w:700,c:PAL['rj']});}}
+ if(sim.p.colorby!=='region'&&by+14*k<H){const r=truth(sim);txt(ctx,`Below ${L.s}: ${f1(r)} of 100`+(G&&G.g?` (your gut: ${Math.round(G.g.guess)})`:''),rx,by+12*k,{s:13*k,w:700,c:PAL['rj']});
+  if(revealed(sim)&&by+34*k<H-4)txt(ctx,`${mil(below(sim))}M ÷ ${mil(POP[y])}M × 100 = ${f1(per100(sim))}`,rx,by+34*k,{s:13*k,w:700,c:PAL['rj']});}}
 
 function drawBorn(sim,ctx,k){const A=P(sim.p.a),B=P(sim.p.b),ph=k>1.4,cA='#b0702a',cB='#3f6fb0';
  txt(ctx,'Born in ',20,28,{s:15*k,w:700});ctx.font='700 '+(15*k)+'px '+FONT;let x=20+ctx.measureText('Born in ').width;
@@ -101,6 +107,7 @@ function drawBorn(sim,ctx,k){const A=P(sim.p.a),B=P(sim.p.b),ph=k>1.4,cA='#b0702
  const top=44+8*k,rh=(H-top-6)/rows.length,lx=20,bx=ph?20:250,bw=W-bx-vw-24;
  rows.forEach(([l,key,mx,f],i)=>{const y=top+i*rh;txt(ctx,l,lx,y+(ph?14:rh/2-2)*k,{s:13*k,w:700,b:'middle'});
   const b0=ph?y+22*k:y+rh/2-16,bh=Math.min(14,(rh-(ph?22*k:0)-14)/2);
+  if(key==='u5'&&!ph&&A.u5!==B.u5){const hi=A.u5>B.u5?A:B,lo=hi===A?B:A;txt(ctx,`${f1(hi.u5)} ÷ ${f1(lo.u5)} = ${(hi.u5/lo.u5).toFixed(1)} times`,lx,y+rh/2+16*k,{s:12*k,w:700,c:PAL['rj'],b:'middle'});}
   [[A,cA],[B,cB]].forEach(([c,col],j)=>{const yy=b0+j*(bh+6);ctx.fillStyle=PAL['line'];ctx.fillRect(bx,yy,bw,bh);ctx.fillStyle=col;ctx.fillRect(bx,yy,bw*clamp(c[key]/mx,0,1),bh);
    txt(ctx,f(c[key]),bx+bw+8,yy+bh/2,{s:12*k,w:700,b:'middle',c:PAL['cv-ink']});});});}
 
@@ -153,23 +160,25 @@ function drawGrowth(sim,ctx,k){const A=P(sim.p.a),B=P(sim.p.b),cA='#b0702a',cB='
 function draw(sim,ctx,vdt,k){sim._k=k;ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,W,H);syncVis(sim);const v=sim.p.view;
  if(v==='born')drawBorn(sim,ctx,k);else if(v==='lorenz')drawLorenz(sim,ctx,k);else if(v==='elephant')drawElephant(sim,ctx,k);else if(v==='growth')drawGrowth(sim,ctx,k);else drawPeople(sim,ctx,k);}
 
-function infoHTML(){return `<h3>One human family</h3><p>Catholic social teaching holds that the goods of the earth are meant for everyone: the <b>universal destination of goods</b>. Pope Paul VI, quoting the Second Vatican Council, wrote that God intended the earth and everything in it “for the use of all human beings and peoples” (<i>Populorum Progressio</i>, 1967, no. 22).</p>
+/* Context that used to sit under the picture; it now lives in About, and its question is the last tour step. */
+const CONTEXT=`<p><b>One human family.</b> Catholic social teaching holds that the goods of the earth are meant for everyone: the <b>universal destination of goods</b>. Pope Paul VI, quoting the Second Vatican Council, wrote that God intended the earth and everything in it “for the use of all human beings and peoples” (<i>Populorum Progressio</i>, 1967, no. 22).</p>
 <p>Pope John Paul II called <b>solidarity</b> “a firm and persevering determination to commit oneself to the common good” (<i>Sollicitudo Rei Socialis</i>, 1987, no. 38). It is not a vague feeling of pity for people far away.</p>
-<h3>Progress and what remains</h3><p>In 1990, 43 of every 100 people lived on less than $3.00 a day; in 2024, about 10 did. Child deaths before age 5 fell from 93.5 to 37.4 per 1,000 births. Yet about 847 million people still live below $3.00 a day, and a child born in Nigeria is about 46 times as likely to die before age 5 as one born in Norway.</p>
-<p><b>Discuss:</b> what does solidarity ask of a student in Colorado? People of good will answer this differently: through charity, trade, aid, migration policy, business or prayer. There is no answer key.</p>`;}
+<p><b>Progress and what remains.</b> In 1990, 43 of every 100 people lived on less than $3.00 a day; in 2024, about 10 did. Child deaths before age 5 fell from 93.5 to 37.4 per 1,000 births. Yet about 847 million people still live below $3.00 a day, and a child born in Nigeria is about 46 times as likely to die before age 5 as one born in Norway.</p>
+<p><b>Discuss:</b> what does solidarity ask of a student in Colorado? People of good will answer this differently: through charity, trade, aid, migration policy, business or prayer. There is no answer key.</p>`;
 
 const SIM={
  id:'northsouth',hash:'northsouth',apUnit:5,order:3,tab:'The world in 100 people',kind:'Simulation',
+ skills:{bio:'Rates per 100 (part ÷ whole × 100) and ratios · Algebra 1 (Unit 2)',honors:'Mean vs. median, the Lorenz curve and the Gini index · Statistics (Chapter 1), AP Microeconomics (Unit 6)',ap:'Exponential growth and the rule of 70 · Algebra 2 (Unit 5), AP Precalculus (Unit 2A)'},
  card:'Shrink the world to 100 people, guess how many live on less than $3 a day, and compare what a child can expect depending on where she is born.',
  title:'The world in 100 people',
  lede:{bio:'More than 8 billion people share one planet. Shrink them to 100, and you can see how many live on less than $3 a day, where they live, and how much a birthplace shapes a child’s life.',
-  honors:'Averages hide a lot. The world’s mean income is $21.61 a day, but the median person lives on about $9.22. A Lorenz curve and the Gini coefficient show how unequal the whole world is, and the “elephant curve” shows who gained from 1988 to 2008.',
-  ap:'Growth compounds. At g% a year, income doubles in about 70 ÷ g years. A gap between two countries closes only if the poorer one grows faster, and it takes ln(ratio) ÷ ln((1 + g₁)/(1 + g₂)) years.'},
+  honors:'Averages hide a lot. The world’s mean income is $21.61 a day, but the median person lives on about $9.22. A Lorenz curve and the Gini coefficient show how unequal the whole world is.',
+  ap:'Growth compounds. At g% a year, income doubles in about 70 ÷ g years. The “elephant curve” shows who gained from 1988 to 2008. A gap between two countries closes only if the poorer one grows faster, and it takes ln(ratio) ÷ ln((1 + g₁)/(1 + g₂)) years.'},
  scale:'The whole world, 2024: about 8.14 billion people. One figure in the grid stands for about 81 million people. Incomes are per person per day, in 2021 PPP dollars (what money buys at local prices).',
  aspect:1.6,timeless:true,trials:true,graph:true,
  controlsTitle:'The world',
  controls:[
-  {id:'view',label:'What to look at',type:'seg',def:'people',noGut:true,onChange:syncVis,options:[{v:'people',l:'100 people'},{v:'born',l:'Born here, born there'},{v:'lorenz',l:'How income is shared',lvl:'honors'},{v:'elephant',l:'Who gained?',lvl:'honors'},{v:'growth',l:'Closing the gap',lvl:'ap'}]},
+  {id:'view',label:'What to look at',type:'seg',def:'people',noGut:true,onChange:syncVis,options:[{v:'people',l:'100 people'},{v:'born',l:'Born here, born there'},{v:'lorenz',l:'How income is shared',lvl:'honors'},{v:'elephant',l:'Who gained?',lvl:'ap'},{v:'growth',l:'Closing the gap',lvl:'ap'}]},
   {id:'line',label:'The income line',type:'seg',def:'3',noGut:true,onChange:clearGut,options:[{v:'3',l:'$3.00 a day'},{v:'8.3',l:'$8.30 a day'},{v:'30',l:'$30 a day',lvl:'honors'}],help:'$3.00 a day is the World Bank’s extreme poverty line. $8.30 is its line for upper-middle-income countries. All in 2021 PPP dollars.'},
   {id:'guess',label:'Your guess: how many of the 100 live below the line?',type:'range',min:0,max:100,step:1,def:50,unit:' people',d:0},
   {id:'show',label:'Show the real world',type:'toggle',def:false,help:'Off: you guess first.'},
@@ -204,15 +213,15 @@ const SIM={
    txt(ctx,l,ax.X(2024)-4,ax.Y(ts[ts.length-1]*100)-10,{s:12,w:700,a:'right',c:col});});
   txt(ctx,'2020: the pandemic pushed the share back up for the first time in decades.',box.L+8,box.T+12,{s:12,c:PAL['muted']});},
  draw,
- infoPanel:infoHTML,
  narrate(sim){const v=sim.p.view;
   if(v==='born'){const A=P(sim.p.a),B=P(sim.p.b);if(A.id===B.id)return 'Pick two different birthplaces to compare.';const hi=A.u5>B.u5?A:B,lo=hi===A?B:A;
-   return `A child born in ${hi.n} is <b>${(hi.u5/lo.u5).toFixed(1)} times as likely to die before age 5</b> as one born in ${lo.n} (${f1(hi.u5)} vs. ${f1(lo.u5)} per 1,000), and can expect ${f1(Math.abs(A.le-B.le))} ${hi.le<lo.le?'fewer':'more'} years of life. Same children, different birthplaces.`;}
+   return `A child born in ${hi.n} is <b>${(hi.u5/lo.u5).toFixed(1)} times as likely to die before age 5</b> as one born in ${lo.n} (${f1(hi.u5)} vs. ${f1(lo.u5)} per 1,000), and can expect ${f1(Math.abs(A.le-B.le))} ${hi.le<lo.le?'fewer':'more'} years of life. The ratio, not the difference, shows the size of the gap.`;}
   if(v==='lorenz')return `The middle person in the world lives on about <b>$${WMED.toFixed(2)} a day</b>, less than half the $${WMEAN.toFixed(2)} average. A few high incomes pull the mean up, so the median says more about a typical life.`;
   if(v==='elephant')return 'From 1988 to 2008, people near the middle of the world’s income ladder (many in China and India) gained about 72%. The global top 1% gained about 65%. <b>People around the 80th to 90th percentile, mostly in rich countries, gained only about 5%.</b>';
   if(v==='growth'){const t=close(sim),A=P(sim.p.a),B=P(sim.p.b);const d=dbl(sim.p.ga);
    return `At ${f1(sim.p.ga)}% a year, ${A.n}’s income doubles every ${d?f1(d):'(never)'} years. ${t==null?'<b>The poorer country is not growing faster, so the gap never closes.</b>':t===0?'The two start at the same income.':`<b>The gap closes in about ${f1(t)} years</b>, if both rates held that long.`}`;}
-  const y=yr(sim),L=LINES[sim.p.line];if(!shown(sim))return `Each figure stands for about ${Math.round(POP[y]/100)} million people. <b>How many of the 100 live on less than ${L.l}?</b> Drag your guess, then lock it in.`;
+  const y=yr(sim),L=LINES[sim.p.line];if(BioLab.calcPending&&BioLab.calcPending(sim))return `Your turn: <b>per 100 = people below the line ÷ all people × 100</b>.`;
+  if(!shown(sim))return `Each figure stands for about ${Math.round(POP[y]/100)} million people. <b>How many of the 100 live on less than ${L.l}?</b> Drag your guess, then lock it in.`;
   if(sim.p.colorby==='region')return 'East Asia and South Asia hold half the world’s people. <b>About 7 of every 10 people below $3.00 a day live in Sub-Saharan Africa</b>, where about 45% of people live below that line.';
   const r=truth(sim);return `In ${y}, <b>${f1(r)} of every 100 people</b> lived on less than ${L.l}: about ${big(r/100*POP[y])} people. ${y===2024&&sim.p.line==='3'?'In 1990 it was 43.4 of 100.':y===1990&&sim.p.line==='3'?'By 2024 it fell to 10.4 of 100.':''}`;},
  gut:{better:'lower',controls:['guess'],
@@ -220,6 +229,14 @@ const SIM={
    honors:'Before you look: how many of the 100 live below the income line? Set <b>Your guess</b>, then lock it in.'},
   lock(sim){const g=sim.p.guess;return {v:Math.abs(g-truth(sim)),guess:g,line:sim.p.line,y:yr(sim),label:`${Math.round(g)} of 100 below ${LINES[sim.p.line].l}`};},
   solve(sim){const t=truth(sim);sim.p.guess=t;sim.p.show=true;sim.p.view='people';sim.p.colorby='income';return {v:0,guess:t,line:sim.p.line,y:yr(sim),label:`${f1(t)} of 100 below ${LINES[sim.p.line].l} (${big(t/100*POP[yr(sim)])} people)`};},
+  hint:{bio:'Lock in your guess. Then you will work out the real number yourself from two counts.'},
+  calc:{unit:'people',d:1,tol:0.15,after:'lock',
+   prompt:{bio:sim=>{const y=yr(sim);return `In ${y}, <b>${mil(below(sim))} million</b> of the world’s <b>${mil(POP[y])} million</b> people lived on less than ${LINES[sim.p.line].l}. If the world were 100 people, how many would that be? Use part ÷ whole × 100, to one decimal place.`;},
+    ap:sim=>{const y=yr(sim);return `The headcount below ${LINES[sim.p.line].l} in ${y} was ${mil(below(sim))} million, out of ${mil(POP[y])} million people. Find the headcount ratio per 100 people, to one decimal place.`;}},
+   answer:per100,
+   hint:'Divide the people below the line by all the people. Then multiply by 100.',
+   steps(sim){const y=yr(sim),a=Math.round(below(sim)),b=Math.round(POP[y]);return [`Part ÷ whole = ${mil(a)} ÷ ${mil(b)} = ${(a/b).toFixed(4)}.`,`× 100 = <b>${f1(per100(sim))} people out of 100</b>.`,`Each of the 100 stands for about ${Math.round(b/100)} million people.`];}},
+  formula(sim){const y=yr(sim);return `Per 100 = ${mil(below(sim))} million ÷ ${mil(POP[y])} million × 100 = ${f1(per100(sim))} of 100`;},
   how:{bio:'The math scales the world down: the World Bank’s count of people below the line ÷ the world’s population × 100. For $3.00 in 2024: 847 million ÷ 8,142 million × 100 ≈ 10.4 people out of 100.',
    ap:'Per 100 = headcount ratio × 100. The headcount ratio comes from household surveys, converted to 2021 PPP dollars so that $3.00 buys about the same everywhere.'},
   compare(sim,g,m){const y=m.y,off=Math.abs(g.guess-m.guess),L=LINES[m.line],ppl=off/100*POP[y];
@@ -229,11 +246,9 @@ const SIM={
   again(sim){const ls=['3','8.3'].concat(atLeast('honors')?['30']:[]);sim.p.line=ls[Math.floor(Math.random()*ls.length)];sim.p.year=Math.random()<0.25?'1990':'2024';sim.p.guess=50;sim.p.show=false;sim.p.view='people';sim.p.colorby='income';}
  },
  challenges:[
-  {lvl:'bio',instant:true,q:'Shrink the world to 100 people. About how many live in Sub-Saharan Africa?',choices:['About 5','About 16','About 40'],correct:1,explain:'1,290 million of 8,141 million people in 2024: 15.8%, so about 16 of 100. East Asia & Pacific (29) and South Asia (21) hold half the world.'},
-  {lvl:'bio',instant:true,q:'In 1990, 43 of every 100 people lived on less than $3.00 a day. In 2024?',choices:['About 40','About 25','About 10'],correct:2,explain:'10.4 of 100 in 2024. That is one of the fastest drops in extreme poverty in history, though 847 million people remain below the line.'},
+  {lvl:'bio',kind:'num',q:'A different count: in 2024, 1,290 million of the world’s 8,142 million people lived in Sub-Saharan Africa. If the world were 100 people, how many would live there? Answer to one decimal place.',answer:15.8,tol:0.15,unit:'people',d:1,hint:'Part ÷ whole × 100.',explain:'1,290 ÷ 8,142 = 0.1584, and × 100 ≈ 15.8 of 100, so about 16 figures. East Asia & Pacific (29) and South Asia (21) hold half the world.'},
   {lvl:'bio',instant:true,q:'Under-5 deaths: Nigeria 115.6 per 1,000 births, Norway 2.5. How many times as likely is a child in Nigeria to die before age 5?',choices:['About 5 times','About 46 times','About 113 times'],correct:1,explain:'115.6 ÷ 2.5 ≈ 46. Comparing with a ratio, not a difference, shows the size of the gap. Nigeria’s rate has also fallen, from 207.6 in 1990.'},
   {lvl:'honors',instant:true,q:'The world’s mean income is $21.61 a day, but the median is about $9.22. What does that tell you?',choices:['Most people earn about $21.61','A smaller number of very high incomes pull the mean far above the typical person','The data must be wrong'],correct:1,explain:'Income is right-skewed: a long tail of high incomes raises the mean. Half the world lives on less than about $9.22 a day, so the median describes a typical life better.'},
-  {lvl:'honors',instant:true,q:'On the elephant curve (1988 to 2008), which group gained the least?',choices:['The middle of the world’s income ladder','People around the 80th to 90th percentile, mostly in rich countries','The global top 1%'],correct:1,explain:'The 80th to 90th percentile gained 4.6%, against 71.7% near the middle and 64.8% for the top 1%. That stagnation is one reason trade and globalization are debated in rich countries.'},
   {lvl:'honors',instant:true,q:'The U.S. Gini is 0.42 and Ecuador’s is 0.46, yet the world’s is about 0.62. How can the world be less equal than any of these countries?',choices:['Because the world measures wealth, not income','Because it adds the gaps between countries to the gaps within them','It cannot; the numbers must be from different years'],correct:1,explain:'A world Gini compares a farmer in Niger with a lawyer in Norway. The gaps between countries’ average incomes are large, so the whole world is less equal than any single country here.'},
   {lvl:'ap',instant:true,q:'Using the rule of 70, how many years does it take an income growing 5% a year to double?',choices:['5 years','14 years','35 years','70 years'],correct:1,explain:'70 ÷ 5 = 14 years. The exact answer is ln 2 ÷ ln 1.05 ≈ 14.2 years. The rule works because ln 2 ≈ 0.693 and ln(1 + g) ≈ g for small g.'},
   {lvl:'ap',instant:true,q:'Nigeria’s income per person (PPP) is $9,100; Norway’s is $105,657. If Nigeria grows 5% a year and Norway 1.5%, about how long until the gap closes?',choices:['About 14 years','About 33 years','About 72 years','Never'],correct:2,explain:'Ratio = 105,657 ÷ 9,100 ≈ 11.6. Years = ln 11.6 ÷ ln(1.05 ÷ 1.015) ≈ 2.452 ÷ 0.0339 ≈ 72.3. Convergence is possible, but at these rates it takes most of a lifetime.'}
@@ -243,23 +258,23 @@ const SIM={
   {title:'Daily income',text:'Colored by daily income (2021 PPP dollars): 10 of the 100 live on less than $3.00 a day, the World Bank’s extreme poverty line. 46 live on less than $8.30. 19 live on more than $30.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'people',show:true,colorby:'income'})},
   {title:'Real progress',text:'In 1990 the world had 5.3 billion people, and 43 of every 100 lived on less than $3.00 a day. By 2024 that fell to about 10, even as the population grew by 2.8 billion.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'people',show:true,year:'1990'})},
   {title:'Where the 100 live',text:'Colored by region: 29 live in East Asia & Pacific, 21 in South Asia, 16 in Sub-Saharan Africa and 5 in North America. About 7 of every 10 people below $3.00 a day live in Sub-Saharan Africa.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'people',show:true,year:'2024',colorby:'region'})},
-  {title:'Born here, born there',text:'A child born in Nigeria can expect to live 54.5 years; in Norway, 83.3. Nigeria’s under-5 death rate is 115.6 per 1,000 births, about 46 times Norway’s 2.5. The child did nothing to earn either.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'born',a:'nga',b:'nor'})},
+  {title:'Born here, born there',text:'A child born in Nigeria can expect to live 54.5 years; in Norway, 83.3. Nigeria’s under-5 death rate is 115.6 per 1,000 births, about 46 times Norway’s 2.5: 115.6 ÷ 2.5 = 46.2.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'born',a:'nga',b:'nor'})},
   {lvl:'honors',title:'Average vs. typical',text:'The world’s mean income is $21.61 a day; the median is about $9.22. The world’s Lorenz curve bows much farther from equality than the U.S. curve.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'lorenz',lc:'usa'})},
-  {lvl:'honors',title:'Who gained?',text:'Lakner and Milanovic’s “elephant curve”: from 1988 to 2008 the middle of the world gained about 72%, the top 1% about 65%, and the 80th to 90th percentile only about 5%.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'elephant'})},
-  {lvl:'ap',title:'Growth compounds',text:'At 5% a year, income doubles in about 14 years (rule of 70). If Nigeria grew 5% a year and Norway 1.5%, the gap would close in about 72 years.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'growth',a:'nga',b:'nor',ga:5,gb:1.5})}
+  {lvl:'ap',title:'Growth compounds',text:'At 5% a year, income doubles in about 14 years (rule of 70). If Nigeria grew 5% a year and Norway 1.5%, the gap would close in about 72 years.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'growth',a:'nga',b:'nor',ga:5,gb:1.5})},
+  {title:'One human family',text:'Catholic social teaching speaks of the universal destination of goods (Paul VI, Populorum Progressio 22) and of solidarity (John Paul II, Sollicitudo Rei Socialis 38); About quotes both. Discuss: what does solidarity ask of a student in Colorado? People of good will answer this differently: through charity, trade, aid, migration policy, business or prayer. There is no answer key.',pause:true}
  ],
  lab:{bio:'<p><b>Question:</b> How has the world changed since 1990?</p><ol><li>Turn on <b>Show the real world</b>. Record a trial for each income line in 2024.</li><li>Switch the year to 1990 and record the same lines.</li><li>Open <b>Born here, born there</b> and compare three pairs of birthplaces. Record the life expectancy gap and the under-5 ratio.</li></ol><p>Write two sentences: one about real progress, and one about what remains.</p>',
-  honors:'<p><b>Question:</b> Why do averages mislead?</p><ol><li>In <b>How income is shared</b>, compare the world’s Lorenz curve with three countries’ curves. Record each Gini.</li><li>Explain why the world’s Gini is higher than any one country’s.</li><li>In <b>Who gained?</b>, describe who gained most and least from 1988 to 2008.</li></ol><p>Write a paragraph explaining the elephant curve to a friend, using the mean and median.</p>',
+  honors:'<p><b>Question:</b> Why do averages mislead?</p><ol><li>In <b>How income is shared</b>, compare the world’s Lorenz curve with three countries’ curves. Record each Gini.</li><li>Explain why the world’s Gini is higher than any one country’s.</li><li>Compute the gap between the world mean and median, and explain which one describes a typical person.</li></ol><p>Write a paragraph explaining to a friend why a world average can mislead, using the mean and median.</p>',
   ap:'<p><b>Question:</b> Can poorer countries catch up?</p><ol><li>In <b>Closing the gap</b>, set the growth rates and record the doubling time and the years to close the gap.</li><li>Check the rule of 70 against the exact formula ln 2 ÷ ln(1 + g) for 2%, 5% and 10%.</li><li>Find the smallest growth rate for the poorer country that closes the gap within 50 years.</li></ol><p><b>CER:</b> Make a claim about convergence, with evidence from your trials and reasoning from the compound growth formula.</p>'},
  terms:[
   {t:'International poverty line',d:'The World Bank’s line for extreme poverty: $3.00 per person per day in 2021 PPP dollars (updated June 2025).'},
   {t:'PPP (purchasing power parity)',d:'A way of converting money so that a dollar buys about the same basket of goods in every country.'},
   {t:'Under-5 mortality rate',d:'Deaths before age 5 per 1,000 live births.'},
   {t:'Global North and Global South',d:'Loose names for richer countries (mostly in the Northern Hemisphere) and lower-income countries (mostly in the South). They describe income, not exact geography: Australia is “North,” and much of Asia is “South.”'},
-  {t:'Solidarity',d:'In Catholic social teaching, a firm commitment to the common good, because we are all responsible for all.'},
+  {t:'Solidarity',d:'A term from Catholic social teaching. John Paul II described it as “a firm and persevering determination to commit oneself to the common good” (Sollicitudo Rei Socialis, 1987, no. 38).'},
   {t:'Mean and median',d:'The mean adds all incomes and divides by the number of people. The median is the income of the person in the middle.',lvl:'honors'},
   {t:'Lorenz curve and Gini coefficient',d:'The Lorenz curve plots the share of income held by the poorest x% of people. The Gini measures how far it bows from equality, from 0 (equal) to 1.',lvl:'honors'},
-  {t:'Elephant curve',d:'A graph of income growth by global percentile from 1988 to 2008 whose shape looks like an elephant: high gains in the middle and at the top, little gain around the 80th to 90th percentile.',lvl:'honors'},
+  {t:'Elephant curve',d:'A graph of income growth by global percentile from 1988 to 2008 whose shape looks like an elephant: high gains in the middle and at the top, little gain around the 80th to 90th percentile.',lvl:'ap'},
   {t:'Rule of 70',d:'Doubling time ≈ 70 ÷ growth rate in percent. It comes from ln 2 ≈ 0.693.',lvl:'ap'},
   {t:'Convergence',d:'Poorer countries growing faster than richer ones, so gaps shrink. Divergence is the opposite.',lvl:'ap'}
  ],
@@ -270,7 +285,7 @@ const SIM={
 <p><b>Lorenz curves</b>: the world curve is built here from PIP’s 2024 shares below 11 income lines, placing people at each band’s midpoint; it is approximate (its own Gini comes out near 0.59). The world Gini of about 0.62 (62 on a 0 to 100 scale, 2019, down from about 70 in 1990) is from the World Bank’s Atlas of Sustainable Development Goals (<a href="https://datatopics.worldbank.org/sdgatlas/goal-10-reduced-inequalities" target="_blank" rel="noopener">datatopics.worldbank.org</a>). Country curves use World Bank income or consumption shares by fifth (latest year 2022 to 2025); India, Nigeria and Bhutan measure consumption, which is usually more equal than income.</p>
 <p><b>Elephant curve</b>: Christoph Lakner and Branko Milanovic, “Global Income Distribution: From the Fall of the Berlin Wall to the Great Recession,” World Bank Policy Research Working Paper 6719 (2013), Table 3, cumulative real growth 1988 to 2008 in 2005 PPP dollars (<a href="https://documents1.worldbank.org/curated/en/914431468162277879/pdf/WPS6719.pdf" target="_blank" rel="noopener">documents.worldbank.org</a>); published in the <i>World Bank Economic Review</i> 30(2), 2016. Only the percentile groups in that table are plotted; the 10th to 40th and 70th to 80th groups are not shown.</p>
 <p><b>Growth</b>: years to double = ln 2 ÷ ln(1 + g); rule of 70 ≈ 70 ÷ g. Years to close a gap = ln(ratio) ÷ ln((1 + g₁) ÷ (1 + g₂)). Real growth rates change from year to year; constant rates are an assumption for illustration.</p>
-<p><b>Quotations</b>: Paul VI, <i>Populorum Progressio</i> (1967), no. 22 (<a href="https://www.vatican.va/content/paul-vi/en/encyclicals/documents/hf_p-vi_enc_26031967_populorum.html" target="_blank" rel="noopener">vatican.va</a>); John Paul II, <i>Sollicitudo Rei Socialis</i> (1987), no. 38 (<a href="https://www.vatican.va/content/john-paul-ii/en/encyclicals/documents/hf_jp-ii_enc_30121987_sollicitudo-rei-socialis.html" target="_blank" rel="noopener">vatican.va</a>).</p>`
+<p><b>Quotations</b>: Paul VI, <i>Populorum Progressio</i> (1967), no. 22 (<a href="https://www.vatican.va/content/paul-vi/en/encyclicals/documents/hf_p-vi_enc_26031967_populorum.html" target="_blank" rel="noopener">vatican.va</a>); John Paul II, <i>Sollicitudo Rei Socialis</i> (1987), no. 38 (<a href="https://www.vatican.va/content/john-paul-ii/en/encyclicals/documents/hf_jp-ii_enc_30121987_sollicitudo-rei-socialis.html" target="_blank" rel="noopener">vatican.va</a>).</p>`+CONTEXT+'<p><b>What this number hides.</b> A count per 100 hides how far below the line people are, how many sit just above it, the differences inside each country and region, and anyone household surveys do not reach.</p>'
 };
 BioLab.register(SIM);
 })();

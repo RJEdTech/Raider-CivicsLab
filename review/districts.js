@@ -1,0 +1,40 @@
+BioLab.addReview({
+districts:{
+ questions:[
+  {id:'seats',kind:'real',lvl:'bio',
+   q:'On the Blocks map, Green’s votes in districts 1 to 6 are 4, 9, 3, 9, 10 and 10, out of 15 each. How many seats does Green win?',
+   num:{ans:4,tol:0,unit:'seats'},
+   steps:['A side needs 8 of 15 to win.','Green has 8 or more in districts 2, 4, 5 and 6 (9, 9, 10, 10).','So Green wins 4 seats and Purple wins 2, with exactly half the votes each.'],
+   lab:{set:{map:'blocks',reveal:true},look:'Read <b>Seats Green wins</b>.'},verify:[['gseats',4,0],['pseats',2,0]]},
+  {id:'wasted',kind:'test',lvl:'bio',
+   q:'On the same Blocks map, how many Green votes are wasted? (Wasted: votes in a district Green loses, plus votes beyond 8 in a district Green wins.)',
+   num:{ans:13,tol:0,unit:'votes'},
+   steps:['Lost districts: 4 and 3, all wasted: 4 + 3 = 7.','Won districts: 9 − 8 = 1, 9 − 8 = 1, 10 − 8 = 2, 10 − 8 = 2, total 6.','7 + 6 = 13 wasted Green votes.'],
+   lab:{set:{map:'blocks',reveal:true},look:'Read <b>Green wasted votes</b>.'},verify:[['wg',13,0],['wp',29,0]]},
+  {id:'pack',kind:'test',lvl:'bio',
+   q:'A map puts 13 of a side’s voters in one district and spreads the rest 7 to a district, so they lose those districts 8 to 7. Which words describe it?',
+   choices:['Packing in one district and cracking in the others','Compactness','Apportionment'],correct:0,
+   steps:['Packing: crowding a side into one district it wins by far more than needed (13 when 8 would do, wasting 5).','Cracking: spreading a side thin so it falls just short in many districts.','Map B does both to Green: 1 seat from 50% of the vote.'],
+   lab:{set:{map:'b',reveal:true},look:'Compare district 3 with districts 2, 4, 5 and 6.'},verify:[['gseats',1,0]]},
+  {id:'eg',kind:'real',lvl:'honors',
+   q:'On Blocks, Green wastes 13 votes and Purple wastes 29, out of 90. Find the efficiency gap, (Purple wasted − Green wasted) ÷ 90, as a percent to one decimal.',
+   num:{ans:17.8,tol:0.1,unit:'%'},
+   steps:['29 − 13 = 16 more wasted Purple votes.','16 ÷ 90 = 0.1778.','About 17.8% toward Green, even though Blocks is six plain rectangles: Purple voters live close together, so neutral lines pack them.'],
+   lab:{set:{map:'blocks',reveal:true},look:'Read <b>Efficiency gap</b>.'},verify:[['eg',17.78,0.01]]},
+  {id:'pp',kind:'test',lvl:'honors',
+   q:'A district is a 5 × 3 block of squares: area 15, perimeter 16. Find its Polsby–Popper score, 4πA ÷ P², to three decimals.',
+   num:{ans:0.736,tol:0.001,unit:''},
+   steps:['P² = 16² = 256.','4π × 15 = 188.496.','188.496 ÷ 256 ≈ 0.736. Every Blocks district has this shape, so the average is 0.736 too.'],
+   lab:{set:{map:'blocks',reveal:true},look:'Read <b>Average compactness</b>.'},verify:[['pp',0.7363,0.0005],['ppmin',0.7363,0.0005]]},
+  {id:'max',kind:'test',lvl:'ap',
+   q:'A town has 45 Green voters, and every district has 15 voters. What is the most districts Green can win on any legal map? Show why no map can do better.',
+   num:{ans:5,tol:0,unit:'districts'},
+   steps:['Each win needs at least 8 Green voters.','6 wins would need 6 × 8 = 48 Green voters, but there are only 45.','45 ÷ 8 = 5.6, so at most 5. Map A reaches it, with 8 or 9 Green voters in five districts.'],
+   lab:{set:{map:'a',reveal:true},look:'Read <b>Seats Green wins</b> and <b>Green wasted votes</b>.'},verify:[['gseats',5,0],['wg',5,0],['wp',37,0]]},
+  {id:'rucho',kind:'real',lvl:'ap',
+   q:'Which statement matches Rucho v. Common Cause (2019)?',
+   choices:['Federal courts must strike down any map with an efficiency gap above 8%','Partisan gerrymandering claims are political questions beyond the reach of federal courts; states and Congress can still act','Independent commissions violate the Constitution'],correct:1,
+   steps:['The 5 to 4 majority found no clear, manageable and politically neutral test.','It pointed to state constitutions, state courts, independent commissions and Congress.','The dissent argued that lower courts had used workable standards that reach only extreme cases. Whether courts should police maps is still argued; the math in this tool describes maps, it does not settle that question.']}
+ ]
+}
+});

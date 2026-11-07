@@ -56,27 +56,29 @@ const hit70=sim=>{const a=ev70(sim);return 100*sum(a.map(e=>e.o))/a.length;};
 const calGap=sim=>{const c=calib(sim);return sum(c.map(b=>b.n*Math.abs(100*b.y/b.n-100*b.f)))/NF;};
 
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
-const shown=sim=>!!(sim.p.show||(sim.tour&&sim.tour.on&&sim.st.peek)||(GS(sim)&&GS(sim).g));
+/* The bias stays hidden while the student works it out ("Your turn"). */
+const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
+const shown=sim=>!!(sim.p.show||(sim.tour&&sim.tour.on&&sim.st.peek===1)||(GS(sim)&&GS(sim).g&&!pend(sim)));
+/* "Your turn": of every 100 adults, 16 graduate volunteers, 24 graduates who did not, 12 other volunteers, 48 others who did not.
+   Answers come in proportion to group size × how often each group answers. */
+const nf=v=>(Math.round(v*100)/100).toLocaleString('en-US');
+const ansCells=sim=>{const v=V(sim),e=E(sim);return [16*e*v,24*e,12*v,48];};
+const calcAns=sim=>Math.round(bias(sim)*10)/10;
 const f1=v=>v.toFixed(1),f0=v=>Math.round(v).toLocaleString('en-US'),pc=v=>(100*v).toFixed(1);
 const ppl=pts=>f0(Math.abs(pts)/100*CITY);
 function clearGut(sim){if(sim.gutS&&(sim.gutS.g||sim.gutS.m)){sim.gutS.g=null;sim.gutS.m=null;if(BioLab.gutRender)BioLab.gutRender(sim);}}
 const ans=(sim,g)=>{const b=bias(sim);return {v:Math.abs(g-b),gut:g,bias:b,w:W(sim),label:`${f1(g)} points too high with 4,000 responses`};};
 const MATHLAB='<a href="https://rjedtech.github.io/Raider-MathLab/#pollmargin" target="_blank" rel="noopener">MathLab: Is 54% a lock?</a>';
 
-function infoHTML(sim){const rrt=respRate(V(sim),E(sim)),b=bias(sim);
- let h=`<p><b>Start with</b> ${MATHLAB} if the margin of error is new to you. It covers the first kind of error below.</p><p><b>Four ways a survey misses (total survey error)</b></p><ul>`+
- `<li><b>Sampling error:</b> the luck of who got picked. The dots bounce less as surveys grow. The margin of error measures only this.</li>`+
- `<li><b>Nonresponse bias:</b> who answers. Here volunteers answer ${f1(V(sim))} times as often, so the survey runs ${f1(b)} points high.</li>`+
- `<li><b>Coverage error:</b> who can be reached at all. A text survey misses anyone whose number is not on the list.</li>`+
- `<li><b>Measurement error:</b> how the question is asked. Wording, and wanting to look good (social desirability), can push answers one way.</li>`;
- if(atLeast('honors'))h+=`<li><b>Likely-voter model:</b> before an election, a pollster must guess who will actually vote. A wrong guess moves every poll that uses it.</li>`;
- h+=`</ul><p><b>What this number hides.</b> About ${f0(rrt*100)} in 100 people answered, so about ${f0(100-rrt*100)} in 100 never did. Every result on this page, weighted or not, is built only from the people who answered. Weighting does not hear from anyone new: it makes some answers count more, so a few people speak for many.`;
+function infoHTML(sim){const rrt=respRate(V(sim),E(sim));
+ let h=`<p><b>What this number hides.</b> About ${f0(rrt*100)} in 100 people answered, so about ${f0(100-rrt*100)} in 100 never did. Every result on this page, weighted or not, is built only from the people who answered. Weighting does not hear from anyone new: it makes some answers count more, so a few people speak for many.`;
  if(atLeast('honors')){const ds=degShare(V(sim),E(sim));h+=` Here each non-graduate’s answer counts ${(0.6/(1-ds)).toFixed(2)} times and each graduate’s ${(0.4/ds).toFixed(2)} times.`;}
  h+=' People with no phone on the list are not in the survey at all, and no weight can bring them back.</p>';
  return h;}
 
 const SIM={
  id:'pollmiss',hash:'pollmiss',apUnit:6,order:1,tab:'Why polls miss',kind:'Simulation',next:['turnout'],
+ skills:{bio:'Weighted shares: who answers × how often they answer · Statistics (Chapter 4: sampling and bias), US Government (Unit 3)',honors:'Nonresponse bias, post-stratification weights and averaging errors · Statistics (Chapter 4), AP Statistics (Unit 3)',ap:'Root-mean-square error, calibration and the Brier score · AP Statistics (Units 3 and 4), AP US Government (Units 4 and 5)'},
  card:'Guess whether 10 times as many responses would fix a survey that came out 18 points too high, then watch what more answers can and cannot fix.',
  title:'Why polls miss',
  lede:{bio:'A bigger survey bounces around less. But if the people who answer are different from the people who do not, a bigger survey just lands more precisely on the wrong number. Getting good numbers is hard.',
@@ -123,6 +125,7 @@ const SIM={
   if(sim.p.view==='avg'&&atLeast('honors')){const a=avgP(sim);return `${sim.p.k} poll${sim.p.k>1?'s':''} averaged: ${f1(a)}%, against a result of ${TA}%. One poll typically misses by ${f1(oneT(sim))} points; the average by about ${f1(avgT(sim))}. <b>Averaging cuts the random part, but the ${f1(sim.p.shared)}-point error every poll shares never averages away.</b>`;}
   if(sim.p.view==='fc'&&atLeast('ap')){const b=brierOf(sim,sim.p.fcst);return `Brier score ${b.toFixed(3)}. Of the 100 events with a 70% chance, ${f1(hit70(sim))}% happened. <b>A 70% favorite that loses is not a broken forecast; a forecaster whose 70%s come true 95% of the time is.</b>`;}
   const m=100*mine(sim),b=bias(sim);
+  if(!shown(sim)&&pend(sim))return `<b>Your turn:</b> multiply each group by how often it answers, then find the volunteers’ share of all the answers.`;
   if(!shown(sim))return `${f0(sim.p.n)} people answered, and ${f1(m)}% said they volunteered. The city’s real share is 28%. <b>Would more responses fix a miss of ${f1(m-28)} points?</b> Lock in your gut first.`;
   return `With ${f0(sim.p.n)} responses, your survey says ${f1(m)}% (margin of error ±${f1(moe(mine(sim),sim.p.n))}). <b>The surveys pile up around ${f1(100*est(sim))}%, ${f1(b)} points above the truth, at every size.</b> ${b>1?'More answers shrink the bounce, not the bias: the bias comes from who answers.':'Who answers barely differs here, so the surveys center on the truth.'}`;},
  gut:{better:'lower',controls:['gut'],
@@ -130,6 +133,19 @@ const SIM={
    honors:'Guess first: with 4,000 responses collected the same way, how many points too high would the survey be? Drag <b>Your gut</b> here, then lock it in. Try weighting by education after the reveal.'},
   lock(sim){return ans(sim,sim.p.gut);},
   solve(sim){const b=bias(sim);sim.p.gut=b;if(sim.p.view!=='survey')sim.p.view='survey';return ans(sim,b);},
+  hint:{bio:'Lock in your gut answer. Then you will work out the real number yourself from who answers.'},
+  calc:{unit:'points',d:1,tol:0.3,
+   prompt:{bio:sim=>{const v=V(sim),e=E(sim);return `Of every 100 adults: <b>16</b> are graduates who volunteered, <b>24</b> graduates who did not, <b>12</b> others who volunteered and <b>48</b> others who did not. Graduates answer <b>${nf(e)}×</b> as often and volunteers <b>${nf(v)}×</b> as often (multiply both for a graduate volunteer). Multiply each group by how often it answers. What share of the answers are volunteers? How many points above the true 28% is that?`;},
+    honors:sim=>{const v=V(sim),e=E(sim);if(W(sim))return `Weighting is on, so graduates count 40% and everyone else 60%. Inside each group, the volunteer share of the answers is pV ÷ (pV + 1 − p), with V = ${nf(v)}: p = 0.4 for graduates and 0.2 for everyone else. Find 0.4 × (graduate share) + 0.6 × (other share). How many points above 28% is it?`;
+     return `Of every 100 adults: 16 graduate volunteers, 24 graduates who did not volunteer, 12 other volunteers and 48 others. Graduates answer ${nf(e)}× as often, volunteers ${nf(v)}×. Find volunteer answers ÷ all answers, then how many points above 28% it is.`;}},
+   answer:calcAns,
+   hint:'Graduate volunteers: 16 × (graduate rate) × (volunteer rate). Add the volunteer answers, divide by all the answers, turn it into a percent and subtract 28.',
+   steps(sim){const v=V(sim),e=E(sim),b=calcAns(sim);
+    if(W(sim)){const g=inG(PD,v),o=inG(PN,v);return [`Graduates: 0.4 × ${nf(v)} ÷ (0.4 × ${nf(v)} + 0.6) = ${(100*g).toFixed(1)}% volunteers among their answers.`,`Everyone else: 0.2 × ${nf(v)} ÷ (0.2 × ${nf(v)} + 0.8) = ${(100*o).toFixed(1)}%.`,`Weighted: 0.4 × ${(100*g).toFixed(1)}% + 0.6 × ${(100*o).toFixed(1)}% = ${f1(100*expW(v))}%, so <b>${f1(b)} points</b> too high. The graduate gap dropped out; the volunteer gap did not.`];}
+    const c=ansCells(sim),vol=c[0]+c[2],all=c[0]+c[1]+c[2]+c[3];
+    return [`Answers from each group: 16 × ${nf(e)} × ${nf(v)} = ${nf(c[0])}; 24 × ${nf(e)} = ${nf(c[1])}; 12 × ${nf(v)} = ${nf(c[2])}; 48 × 1 = 48.`,`Volunteers: ${nf(c[0])} + ${nf(c[2])} = ${nf(vol)} of ${nf(all)} answers, and ${nf(vol)} ÷ ${nf(all)} = ${f1(100*vol/all)}%.`,`${f1(100*vol/all)}% − 28% = <b>${f1(b)} points</b> too high. The number of responses never appears, so 4,000 responses land in the same place.`];}},
+  formula(sim){const v=V(sim);if(W(sim))return `Weighted = 0.4 × ${(100*inG(PD,v)).toFixed(1)}% + 0.6 × ${(100*inG(PN,v)).toFixed(1)}% = ${f1(100*expW(v))}%; ${f1(100*expW(v))}% − 28% = ${f1(bias(sim))} points, at any sample size`;
+   const c=ansCells(sim),vol=c[0]+c[2],all=c[0]+c[1]+c[2]+c[3];return `Volunteer answers ÷ all answers = (${nf(c[0])} + ${nf(c[2])}) ÷ ${nf(all)} = ${f1(100*vol/all)}%; ${f1(100*vol/all)}% − 28% = ${f1(bias(sim))} points, at any sample size`;},
   how:{bio:'The math does not add up dots. It works out who answers: volunteers answer twice as often, so they show up in the answers far more than in the city. That makes the center of every survey too high, whatever its size. Size only shrinks the bounce around that center.',
    honors:'Expected result = (volunteer answers) ÷ (all answers), from each group’s share of the city times how often it answers. Weighting by education fixes each degree group’s share, but inside each group volunteers still answer more, so the bias that remains is 0.4·pV/(pV + 1 − p) for graduates plus 0.6·(the same) for everyone else, minus 28%.'},
   compare(sim,g,m){const d=Math.abs(g.gut-m.bias),n4=moe(TRUTH+m.bias/100,4000);
@@ -140,21 +156,20 @@ const SIM={
   again(sim){const R=a=>a[Math.floor(Math.random()*a.length)];sim.p.vgap=R([1,1.5,2,2.5,3,3.5]);if(atLeast('honors')){sim.p.egap=R([1,1.5,2,2.5]);sim.p.weight=Math.random()<0.5;}sim.p.gut=5;sim.p.n=400;sim.p.show=false;sim.p.view='survey';sim.st.seed=((sim.st.seed||SEED)%9000)+1;}
  },
  challenges:[
+  {lvl:'bio',kind:'num',q:'A school texts a survey to every family. Of every 100 families, 30 came to a fundraiser and 70 did not. Families who came answer 3 times as often. What percent of the answers come from families who came?',answer:56.25,tol:0.3,unit:'%',d:1,hint:'Answers: 30 × 3 from families who came, 70 × 1 from the rest. Divide.',explain:'30 × 3 = 90 answers from families who came and 70 from the rest: 90 ÷ 160 = 56.25%, against a true 30%. That is 26.25 points too high, and asking more families the same way would not change it.'},
   {lvl:'bio',instant:true,q:'Your survey of 400 is about 18 points too high because volunteers answer more often. You collect 4,000 responses the same way. What happens?',choices:['The miss mostly goes away','It stays about 18 points too high, with less bounce','It gets twice as bad'],correct:1,explain:'Ten times the responses shrinks the margin of error from about ±4.9 to about ±1.5 points, but the center stays near 46.2% against a true 28%. Size fixes luck, not who answers.'},
   {lvl:'bio',instant:true,q:'A poll reports “±3 points.” Which error does that margin cover?',choices:['Every way the poll could be wrong','Only the luck of who got picked (sampling error)','Only people who lied'],correct:1,explain:'The margin of error assumes a random sample in which everyone picked answers. It says nothing about who refused, who could not be reached or how the question was worded. MathLab’s “Is 54% a lock?” builds it from scratch.'},
   {lvl:'bio',instant:true,q:'In 2012, Pew Research Center phone surveys found 55% of people saying they volunteered in the past year. The Census Bureau’s Current Population Survey found 27%. What is the most likely reason?',choices:['Volunteering doubled that year','People who volunteer are also more willing to answer surveys','The Census Bureau asked the wrong people'],correct:1,explain:'Pew’s own analysis pointed to this: the same willingness that leads people to volunteer makes them more likely to take a survey. 55% − 27% = 28 points too high, even after weighting by demographics.'},
   {lvl:'bio',instant:true,q:'What does your survey’s result hide?',choices:['Nothing: 400 answers is plenty','The roughly 94 of every 100 people texted who never answered','Only the people who lied'],correct:1,explain:'About 6 in 100 people answered. The other 94 are not in the result at all: the survey speaks for them using the people who did answer. When the two groups differ, as volunteers and non-volunteers do here, the number hides it.'},
   {lvl:'honors',instant:true,q:'Graduates are 40% of the city but about 54% of your answers. You weight by education. What gets fixed?',choices:['Everything: the survey now matches the city','The degree mix, but not the extra volunteers inside each group','Nothing: weighting only works for elections'],correct:1,explain:'After weighting, graduates count for exactly 40%. But in each group volunteers still answer twice as often, so the result only drops from 46.2% to 42.9%: still 14.9 points too high. Weighting fixes what you measure.'},
   {lvl:'honors',instant:true,q:'Every poll shares a 2-point error, plus its own house effect and sampling error. You average 30 polls. About how far off is the average?',choices:['About 0.4 points: 30 polls cancel everything','About 2.0 points: the shared error stays','About 3.1 points, the same as one poll'],correct:1,explain:'Typical miss = √(2² + (1.5² + 1.77²)/30) = √(4 + 0.18) ≈ 2.04 points. The random parts shrink with √30; the shared 2 points never do.'},
-  {lvl:'honors',instant:true,q:'In the 2015 U.K. general election, the final polls showed roughly a tie; the winning side won by 6.5 points. What did the official inquiry find was the main cause?',choices:['A late swing in the last days','Unrepresentative samples','Too few people polled'],correct:1,explain:'The inquiry chaired by Patrick Sturgis found the samples were unrepresentative and that weighting did not fix it. A late swing explained at most a small part. Australia’s 2019 inquiry reached a similar finding.'},
   {lvl:'ap',instant:true,q:'A forecaster gave an event a 70% chance, and it did not happen. What is the Brier score for that one forecast?',choices:['0.09','0.30','0.49','0.70'],correct:2,explain:'Brier = (forecast − outcome)² = (0.70 − 0)² = 0.49. Had it happened: (0.70 − 1)² = 0.09. One forecast tells you little; you judge a forecaster over many.'},
   {lvl:'ap',instant:true,q:'Of 50 races a forecaster rated 70% for the favorite, the favorite won 49. What does that say about the forecaster?',choices:['Well calibrated: favorites won','Underconfident: those races deserved more than 70%','Overconfident'],correct:1,explain:'Calibration expects about 0.7 × 50 = 35 wins. 49 of 50 is 98%, so the forecasts were too timid. Being “right” more often than you said is still a calibration error.'},
   {lvl:'ap',instant:true,q:'AAPOR found 2020 national polls overstated the winning side’s margin by 3.9 points. In a two-way race, about how far off was each side’s share?',choices:['About 3.9 points each','About 2 points each','About 7.8 points each'],correct:1,explain:'The margin is A − B. Move 1 point of share from B to A and the margin grows by 2. So a 3.9-point margin error is about 1.95 points on each share, if there are no third options.'}
  ],
  tour:[
   {title:'Your survey',text:'Your service club texted a survey to random numbers in a city of 200,000 adults. 400 people answered, and 46% said they volunteered last year. A benchmark survey that almost everyone answers says 28% (green). Each dot is one survey of 400; the ringed one is yours.',pause:true,setup:sim=>{BioLab.setValues(sim,{view:'survey',n:400,vgap:2,egap:1.5,weight:false,show:false});sim.st.seed=SEED;sim.st.peek=0;}},
-  {title:'Your turn: compute it',text:'Leave out degrees for a moment. Of every 100 adults, 28 volunteered and 72 did not. If volunteers answer twice as often, answers come in like 28 × 2 = 56 volunteers for every 72 others. Before the next step, work out 56 ÷ (56 + 72) as a percent.',pause:true,setup:sim=>{sim.st.peek=0;}},
-  {title:'Check your number',text:'56 ÷ 128 = 0.4375, about 43.8%. Graduates also answer more often here, which pushes it to 46.2%. That is nonresponse bias: the people who answer differ from the people who do not. Notice that the number of responses never appeared in your calculation.',focus:[0,262,800,188],pause:true,setup:sim=>{sim.st.peek=0;}},
+  {title:'Who answers',text:'Volunteers answer twice as often and graduates 1.5 times as often. Of every 156 answers, 72 come from volunteers: 72 ÷ 156 = 46.2%, against 28% in the city. That is nonresponse bias: the people who answer differ from the people who do not. The number of responses never appears in the calculation.',focus:[0,262,800,188],pause:true,setup:sim=>{sim.st.peek=2;}},
   {title:'More responses',text:'Here are 30 surveys at each size, from 100 to 4,000 responses. They bounce less as they grow: the margin of error falls from about ±4.9 points at 400 to about ±1.5 at 4,000. But every row piles up around 46%, not 28%. The margin of error covers only sampling error, the luck of who got picked.',pause:true,focus:[0,30,800,200],setup:sim=>{sim.st.peek=1;BioLab.setValues(sim,{n:4000});}},
   {title:'What the number hides',text:'About 6 in 100 people texted answered. The other 94 are not in any of these dots. Each result speaks for them using the people who did answer, and nothing on the page shows how they differ.',pause:true,setup:sim=>{sim.st.peek=1;BioLab.setValues(sim,{n:400});}},
   {lvl:'honors',title:'Weighting',text:'Weighting counts each graduate’s answer a little less and everyone else’s a little more, so graduates make up 40%, as in the city. The degree mix is now right. The volunteer share only drops to 42.9%: weighting cannot fix what it does not measure.',pause:true,setup:sim=>{sim.st.peek=1;BioLab.setValues(sim,{weight:true});}},
@@ -179,6 +194,7 @@ const SIM={
   {t:'Brier score',d:'The mean of (forecast − outcome)², with outcome 1 if it happened and 0 if not. 0 is perfect; always saying 50% scores 0.25.',lvl:'ap'}
  ],
  about:`<p><b>Start with</b> ${MATHLAB}, which teaches the margin of error for a random sample. This tool is about the errors that margin leaves out.</p>`+
+ '<p><b>Four ways a survey misses (total survey error).</b></p><ul><li><b>Sampling error:</b> the luck of who got picked. The dots bounce less as surveys grow. The margin of error measures only this.</li><li><b>Nonresponse bias:</b> who answers. In this model, volunteers answer more often than everyone else, so the survey runs high.</li><li><b>Coverage error:</b> who can be reached at all. A text survey misses anyone whose number is not on the list.</li><li><b>Measurement error:</b> how the question is asked. Wording, and wanting to look good (social desirability), can push answers one way.</li><li><b>Likely-voter model:</b> before an election, a pollster must guess who will actually vote. A wrong guess moves every poll that uses it.</li></ul>'+
  '<p><b>The model (illustrative).</b> A city of 200,000 adults; 40% have a college degree. 40% of graduates and 20% of others volunteered last year, so the true share is 0.4 × 40% + 0.6 × 20% = 28%. The 28% benchmark, the 40% graduate share, the volunteer rates, the base response rate (3.85%, which makes about 6% of people answer at the defaults) and the response gaps are assumptions for illustration, not measurements of any real city. Each simulated survey draws respondents at random from the people who would answer, from a fixed random seed. Expected result = Σ(group share × volunteer rate × response rate) ÷ Σ(group share × response rate). Weighting by education rescales the two degree groups to 40% and 60%; within each group the volunteer share among respondents is pV ÷ (pV + 1 − p), where V is the volunteer gap, so the education gap drops out and the volunteer gap does not.</p>'+
  `<p><b>Poll averages (illustrative).</b> Each poll = 51% + the shared error + its house effect (a normal draw times the spread) + sampling error for 800 people (standard error ${SE.toFixed(2)} points). Typical miss is the root-mean-square: one poll √(shared² + house² + SE²); an average of k polls √(shared² + (house² + SE²) ÷ k). House effects are assumed independent across pollsters.</p>`+
  '<p><b>Forecasts (illustrative).</b> 500 events with true chances of 10%, 30%, 50%, 70% and 90% (100 each), outcomes drawn at random. The overconfident forecaster says 3%, 15%, 50%, 85% and 97%. Brier score = mean of (forecast − outcome)²; the score was proposed by Glenn Brier in 1950 for weather forecasts. Calibration gap = average distance between each forecast level and how often those events happened. Always saying 50% can look well calibrated overall and still be useless, because it never separates likely events from unlikely ones; the Brier score catches that.</p>'+
@@ -210,20 +226,24 @@ function drawSurvey(sim,ctx,k){const big=k>1.3,L=big?110:150,R=780,X=v=>L+clamp(
   const r=row(sim,n);r.forEach((p,i)=>{const yy=y+((i*7)%9-4)*2;ctx.fillStyle=PAL['s2'];ctx.globalAlpha=0.65;ctx.beginPath();ctx.arc(X(100*p),yy,3.6,0,7);ctx.fill();});ctx.globalAlpha=1;
   if(on){const p=r[0],yy=y+((0)%9-4)*2;ctx.strokeStyle=PAL['rj'];ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(X(100*p),yy,8,0,7);ctx.stroke();
    txt(ctx,(big?'':'Your survey: ')+f1(100*p)+'%',X(100*p)+12,yy-12,{s:12*k,w:700,c:PAL['rj'],b:'middle'});}});
- if(!sh){const msg=big?'Lock in your gut to see more':'Lock in your gut to see surveys of 100, 1,600 and 4,000';ctx.font=(12*k)+'px '+FONT;const mw=ctx.measureText(msg).width+24;ctx.fillStyle=PAL['card'];rr(ctx,(L+R)/2-mw/2,ys[1600]-12*k,mw,24*k,8);ctx.fill();txt(ctx,msg,(L+R)/2,ys[1600],{s:12*k,c:PAL['cv-soft'],a:'center',b:'middle'});}
+ if(!sh){const msg=big?'Lock in your gut to see more':'Lock in your gut to see surveys of 100, 1,600 and 4,000';ctx.font=(12*k)+'px '+FONT;const mw=ctx.measureText(msg).width+24;ctx.fillStyle=PAL['card'];const my=ys[1600]-(big?6:0);rr(ctx,(L+R)/2-mw/2,my-12*k,mw,24*k,8);ctx.fill();txt(ctx,msg,(L+R)/2,my,{s:12*k,c:PAL['cv-soft'],a:'center',b:'middle'});}
  /* gut marker */
  if(G&&G.g){const xg=X(100*TRUTH+G.g.gut);ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2.5;ctx.setLineDash([3,4]);ctx.beginPath();ctx.moveTo(xg,ys[4000]-14);ctx.lineTo(xg,AY);ctx.stroke();ctx.setLineDash([]);
-  txt(ctx,'Your gut: +'+f1(G.g.gut),xg,AY+26*k,{s:12*k,w:700,c:PAL['s4'],a:'center',b:'top'});}
+  txt(ctx,'Your gut: +'+f1(G.g.gut),xg,big?AY-6:AY+26*k,{s:12*k,w:700,c:PAL['s4'],a:'center',b:big?'bottom':'top'});}
  /* who answered vs the city */
  const T0=big?262:274,v=V(sim),e=E(sim),ds=100*degShare(v,e),vr=100*expRaw(v,e),wt=W(sim);
  const grp=(x0,x1,title,city,ansd,wtd,good)=>{txt(ctx,title,x0,T0,{s:13*k,w:700,b:'middle'});
   const lw=(big?62:80)*k,vw=(big?48:52)*k,bx=x0+lw,bw=x1-bx-vw,rows=[['City',city,PAL['s3']],[big?'Answers':'Answered',ansd,PAL['s2']]];if(wt)rows.push([big?'Wtd.':'Weighted',wtd,PAL['rj']]);
-  const rh=Math.max(26,20*k);rows.forEach((r,i)=>{const y=T0+18*k+i*rh;txt(ctx,r[0],x0,y+8,{s:12*k,c:PAL['cv-soft'],b:'middle'});ctx.fillStyle=r[2];ctx.fillRect(bx,y,bw*clamp(r[1],0,100)/100,16);txt(ctx,f1(r[1])+'%',bx+bw*clamp(r[1],0,100)/100+6,y+8,{s:12*k,w:700,b:'middle'});});
-  const cy=T0+18*k+rows.length*rh+12*k;if(cy<444)txt(ctx,good,x0,cy,{s:12*k,c:PAL['cv-ink'],b:'middle'});};
- const right=wt?(big?`Still +${f1(100*expW(v)-28)} points`:`Still ${f1(100*expW(v)-28)} points too high after weighting`):(big?`+${f1(vr-28)} points`:`${f1(vr-28)} points too high: volunteers answer ${f1(v)}× as often`);
+  const rh=Math.max(26,20*k);rows.forEach((r,i)=>{const y=T0+18*k+i*rh;txt(ctx,r[0],x0,y+8,{s:12*k,c:PAL['cv-soft'],b:'middle'});
+   if(r[1]===null){ctx.strokeStyle=PAL['cv-soft'];ctx.setLineDash([4,3]);ctx.lineWidth=1.5;ctx.strokeRect(bx+.5,y+.5,bw-1,15);ctx.setLineDash([]);txt(ctx,'?',bx+bw/2,y+8,{s:13*k,w:700,c:PAL['cv-soft'],a:'center',b:'middle'});return;}
+   ctx.fillStyle=r[2];ctx.fillRect(bx,y,bw*clamp(r[1],0,100)/100,16);txt(ctx,f1(r[1])+'%',bx+bw*clamp(r[1],0,100)/100+6,y+8,{s:12*k,w:700,b:'middle'});});
+  const cy=T0+18*k+rows.length*rh+12*k;if(cy<444)txt(ctx,good,x0,cy,{s:12*k,c:good.indexOf('Your turn')===0||good.indexOf('The math')===0?PAL['rj']:PAL['cv-ink'],w:good.indexOf('The math')===0?700:400,b:'middle'});};
+ let right=wt?(big?`Still +${f1(100*expW(v)-28)} points`:`Still ${f1(100*expW(v)-28)} points too high after weighting`):(big?`+${f1(vr-28)} points`:`${f1(vr-28)} points too high: volunteers answer ${f1(v)}× as often`);
  const left=wt?(big?'Matches the city':'Weighting makes this match the city'):(big?`+${f1(ds-40)} points`:`Graduates: 40% of the city, ${f1(ds)}% of answers`);
  grp(20,388,big?'College degree':'Have a college degree',40,ds,40,left);
- grp(412,780,big?'Volunteered':'Volunteered last year',28,vr,100*expW(v),right);
+ if(!sh&&!(sim.tour&&sim.tour.on&&sim.st.peek===2))right=pend(sim)?(big?'Your turn: work it out':'Your turn: work out the ? yourself'):(big?'Lock in your gut first':'Lock in your gut to see this share');
+ else if(G&&G.m&&!wt){const c=ansCells(sim);right=`The math: ${nf(c[0]+c[2])} ÷ ${nf(c[0]+c[1]+c[2]+c[3])} = ${f1(vr)}%, ${f1(vr-28)} points high`;}
+ const shP=sh||!!(sim.tour&&sim.tour.on&&sim.st.peek===2);grp(412,780,big?'Volunteered':'Volunteered last year',28,shP?vr:null,shP?100*expW(v):null,right);
  if(!hon){/* nothing else at Big picture */}}
 
 function drawAvg(sim,ctx,k){const big=k>1.3,L=60,R=770,lo=42,hi=62,X=v=>L+(clamp(v,lo,hi)-lo)/(hi-lo)*(R-L),AY=318,P=polls(sim),a=avgP(sim),kk=sim.p.k;

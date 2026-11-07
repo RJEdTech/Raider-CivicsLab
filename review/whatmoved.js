@@ -1,7 +1,7 @@
 BioLab.addReview({
 whatmoved:{
  questions:[
-  {id:'r2pre',kind:'test',lvl:'honors',
+  {id:'r2pre',kind:'test',lvl:'bio',
    q:'For 2001–2019, food insecurity in households with children and the unemployment rate have r ≈ 0.876. What percent of the variation does unemployment explain? Round to the nearest whole percent.',
    num:{ans:77,tol:1,unit:'%'},
    steps:['Square r: 0.876² ≈ 0.767.','As a percent: about 77%.','So for two decades, jobs explain most of the year-to-year changes in hunger in families with kids.'],
@@ -25,11 +25,11 @@ whatmoved:{
    q:'A post says: “Hunger dropped in 2021, so the president in 2021 deserves the credit.” Which question best tests that?',
    choices:['Which party was the president in?','Which specific policies started or stopped in 2021 and 2022, and what else changed then?','Was the president popular?','Did the post get many likes?'],correct:1,
    steps:['A president is one of many forces: Congress writes the laws, the Federal Reserve sets interest rates, and effects lag.','Specific policies, like the expanded Child Tax Credit paid in 2021 and expired after it, can be dated and tested.','That is why this tool hides presidents and parties and shows laws instead.']},
-  {id:'tele',kind:'test',lvl:'ap',
-   q:'#WeCount counted about 1,126,760 abortions in 2025, 28% by telehealth. About how many were by telehealth?',
-   num:{ans:315500,tol:500,unit:'abortions'},
-   steps:['28% of 1,126,760 = 0.28 × 1,126,760.','= 315,492.8, about 315,500.','Note: this is a count. The CDC figure is a rate per 1,000 women from reporting states, so the two cannot be compared directly.'],
-   lab:{set:{series:'abort'},look:'Read <b>#WeCount 2025: abortions by telehealth</b> (Deep dive).'},verify:[['tele',315493,1]]}
+  {id:'recess0708',kind:'real',lvl:'bio',
+   q:'Food insecurity in households with children jumped from 15.8% in 2007 to 21.0% in 2008. Read the shaded bands: what else happened then?',
+   choices:['A recession began in December 2007 and unemployment rose','Nothing: the jump was random noise','Food insecurity was measured for the first time','A new law cut food aid'],correct:0,
+   steps:['The shaded band from December 2007 to June 2009 is the Great Recession.','Unemployment rose from 4.6% in 2007 to 5.8% in 2008 and 9.3% in 2009.','The food line rose with it: 21.0% in 2008 and 21.3% in 2009.'],
+   lab:{set:{expl:'unemp',years:'all',events:true},act:'reveal',look:'Find 2008 on the chart and the shaded recession band.'}}
  ]
 }
 });

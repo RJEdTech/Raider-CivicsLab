@@ -78,10 +78,16 @@ const idxRankOf=(sim,id)=>idxRank(sim).findIndex(o=>o.c.id===id)+1;
 const movers=sim=>idxRank(sim).filter((o,i)=>rankOf(o.c.id,'gdp')!==i+1).length;
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
 const shown=sim=>!!(sim.p.show||(GS(sim)&&GS(sim).m));
+const revealed=sim=>!!(GS(sim)&&GS(sim).m);
+/* "Your turn": the place on the new list = 1 + the number of countries that beat it on that measure. */
+const fmtV=(m,v)=>m==='gdp'||m==='ppp'?usd(v):v.toFixed(m==='hdi'?3:m==='hap'?2:1);
+const listed=m=>C.filter(c=>MEAS[m].get(c)!=null);
+const beaters=sim=>{const q=Q(sim),M=MEAS[q.m],v=M.get(CB(q.c));return listed(q.m).filter(c=>c.id!==q.c&&(M.hi?M.get(c)>v:M.get(c)<v));};
+const hdiParts=c=>[DIM.hea(c),DIM.edu(c),DIM.inc(c)];
 function clearGut(sim){if(sim.gutS&&(sim.gutS.g||sim.gutS.m)){sim.gutS.g=null;sim.gutS.m=null;if(BioLab.gutRender)BioLab.gutRender(sim);}}
 function setQ(sim){const q=Q(sim);BioLab.setValues(sim,{measure:q.m,grank:rankOf(q.c,'gdp'),show:false});clearGut(sim);}
 /* Show only the controls for the current view. */
-const VIEWCTL={gq:'rank',grank:'rank',show:'rank',measure:'rank',wage:'ledger',top:'spread',lc:'spread',w_inc:'build',w_hea:'build',w_edu:'build',w_hap:'build',w_eq:'build',comb:'build'};
+const VIEWCTL={gq:'rank',grank:'rank',show:'rank',measure:'rank',wage:'ledger',top:'spread',w_inc:'build',w_hea:'build',w_edu:'build',w_hap:'build',w_eq:'build',comb:'build'};
 EV.forEach(e=>VIEWCTL[e.id]='ledger');
 function syncVis(sim){const u=sim.ui;if(!u||!u.ctlW)return;
  Object.keys(VIEWCTL).forEach(id=>{const w=u.ctlW[id];if(!w||w._home)return;const c=SIM.controls.find(x=>x.id===id);const hide=!atLeast(c.lvl)||VIEWCTL[id]!==sim.p.view;if(w.hidden!==hide)w.hidden=hide;});}
@@ -91,7 +97,7 @@ const W=800,H=500;
 function drawRank(sim,ctx,k){const q=Q(sim),m=sim.p.measure,M=MEAS[m],sh=shown(sim),G=GS(sim),ph=k>1.4;
  const L0=24,R0=476,cw=300,top=Math.round(44+16*k),rh=(H-top-10)/7;
  txt(ctx,MEAS.gdp.h,L0,30,{s:14*k,w:700});txt(ctx,sh?M.h:M.h+': ?',R0,30,{s:14*k,w:700,c:sh?PAL['cv-ink']:PAL['s4']});
- if(!ph){txt(ctx,'US dollars, 2024',L0,30+17*k,{s:12*k,c:PAL['cv-soft']});txt(ctx,sh?(m==='eq'?'Lower Gini = more equal':m==='hap'?'Average answer, 0 to 10':'Highest first'):'Lock in your guess first',R0,30+17*k,{s:12*k,c:PAL['cv-soft']});}
+ if(!ph){txt(ctx,'US dollars, 2024',L0,30+17*k,{s:12*k,c:PAL['cv-soft']});{const c0=CB(q.c),hp=hdiParts(c0);txt(ctx,sh&&m==='hdi'&&revealed(sim)?`${c0.n}: (${hp.map(x=>x.toFixed(3)).join(' × ')})^(1/3) = ${hdiCalc(c0).toFixed(3)}`:sh?(m==='eq'?'Lower Gini = more equal':m==='hap'?'Average answer, 0 to 10':'Highest first'):'Lock in your guess first',R0,30+17*k,{s:12*k,c:sh&&m==='hdi'&&revealed(sim)?PAL['rj']:PAL['cv-soft'],w:sh&&m==='hdi'&&revealed(sim)?700:400});}}
  const ry=i=>top+i*rh+rh/2;
  const gl=ranked('gdp'),rl=ranked(m),gpos=id=>gl.findIndex(c=>c.id===id),rpos=id=>{const i=rl.findIndex(c=>c.id===id);return i<0?6:i;};
  /* connecting lines */
@@ -128,7 +134,7 @@ function drawLedger(sim,ctx,k){const ph=k>1.4,x0=16,x1=468,top=Math.round(36+16*
  rows.forEach(([l,v,mx,f,big],i)=>{const y=14+i*bh,money=i===0||i===4,col=money?(v?PAL['s2']:PAL['cv-soft']):v>0?PAL['s3']:v<0?PAL['s1']:PAL['cv-soft'];txt(ctx,l,rx,y+16*k,{s:13*k,w:700});txt(ctx,f(v),rx+rw,y+16*k,{s:(big?14:13)*k,w:700,a:'right',c:col});
   const by=y+24*k+6;ctx.fillStyle=PAL['line'];ctx.fillRect(rx,by,rw,10);ctx.fillStyle=PAL['cv-soft'];ctx.fillRect(cx-1,by-3,2,16);
   const w=clamp(v/mx,-1,1)*half;ctx.fillStyle=money?PAL['s2']:v>=0?PAL['s3']:PAL['s1'];ctx.fillRect(Math.min(cx,cx+w),by,Math.abs(w),10);
-  if(i===0&&!ph&&bh>70)txt(ctx,'GDP counts money spent, good or bad',rx,by+28,{s:12*k,c:PAL['cv-soft']});
+  if(i===0&&!ph&&bh>70){const gs=on(sim).map(e=>e.gdp);const s=!gs.length?'GDP counts money spent, good or bad':gs.length>4?`Sum of ${gs.length} events = ${usd(v)}`:gs.map((x,j)=>(j?(x<0?' − ':' + '):(x<0?'−':''))+Math.abs(x).toLocaleString('en-US')).join('')+' = '+(v<0?'−':'')+Math.abs(v).toLocaleString('en-US');txt(ctx,s,rx,by+28,{s:12*k,c:gs.length?PAL['s2']:PAL['cv-soft'],w:gs.length?700:400});}
   if(i===4&&!ph&&bh>70)txt(ctx,`Unpaid hours at $${sim.p.wage.toFixed(2)} an hour`,rx,by+28,{s:12*k,c:PAL['cv-soft']});});}
 
 function drawSpread(sim,ctx,k){const a=street(sim),mu=meanOf(a),md=medOf(a),ph=k>1.4;
@@ -141,16 +147,13 @@ function drawSpread(sim,ctx,k){const a=street(sim),mu=meanOf(a),md=medOf(a),ph=k
  txt(ctx,ph?'Lowest to highest':'Each bar is one household, lowest to highest income',bx,base+20,{s:12*k,c:PAL['cv-soft']});
  const line=(v,col)=>{const y=base-Math.min(v,cap)*sc;ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();ctx.moveTo(bx,y);ctx.lineTo(bx+bw,y);ctx.stroke();ctx.setLineDash([]);};
  line(mu,PAL['s1']);line(md,PAL['s3']);
- /* Lorenz curve */
- const s=Math.min(290,H-130),LX=470,LY=H-44-s,X=p=>LX+p*s,Y=p=>LY+s-p*s;
- txt(ctx,'Lorenz curve',LX,LY-26-(ph?0:16*k),{s:14*k,w:700});
- if(!ph)txt(ctx,`Street Gini: ${giniOf(a).toFixed(3)}`,LX,LY-26,{s:12*k,c:PAL['rj'],w:700});
- ctx.strokeStyle=PAL['cv-soft'];ctx.lineWidth=1;ctx.strokeRect(LX,LY,s,s);ctx.beginPath();ctx.moveTo(X(0),Y(0));ctx.lineTo(X(1),Y(1));ctx.stroke();
- const pl=(p,col,dash)=>{ctx.strokeStyle=col;ctx.lineWidth=3;if(dash)ctx.setLineDash([7,5]);ctx.beginPath();p.forEach(([x,y],i)=>i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)));ctx.stroke();ctx.setLineDash([]);};
- const lc=sim.p.lc!=='none'?CB(sim.p.lc):null;if(lc)pl(lorenzQ(lc.q),PAL['s2'],true);pl(lorenzStreet(a),PAL['rj']);
- txt(ctx,'Share of households',X(.5),Y(0)+18*k,{s:12*k,a:'center',c:PAL['cv-soft']});
- if(!ph)txt(ctx,'Perfect equality',X(.36),Y(.36)-12,{s:12*k,c:PAL['cv-soft'],a:'right'});
- if(lc)txt(ctx,lc.n+(ph?'':` (fifths, ${lc.gy})`),X(.04),Y(.92),{s:12*k,w:700,c:PAL['s2']});}
+ /* the two computations, step by step */
+ const LX=440,tot=a.reduce((s,x)=>s+x,0),f1=v=>(Math.round(v*10)/10).toLocaleString('en-US');let yy=Math.round(110+20*k);const lh=22*k;
+ txt(ctx,'Mean: add all 10, divide by 10',LX,yy,{s:13*k,w:700,c:PAL['s1']});yy+=lh;
+ txt(ctx,`Sum = ${f1(tot)}k`,LX,yy,{s:13*k});yy+=lh;txt(ctx,`${f1(tot)} ÷ 10 = $${mu.toFixed(1)}k`,LX,yy,{s:13*k,w:700});yy+=lh*1.6;
+ txt(ctx,'Median: the middle of the sorted list',LX,yy,{s:13*k,w:700,c:PAL['s3']});yy+=lh;
+ txt(ctx,ph?'5th and 6th households':'10 values: average the 5th and 6th',LX,yy,{s:13*k});yy+=lh;txt(ctx,`(${a[4]} + ${a[5]}) ÷ 2 = $${md.toFixed(1)}k`,LX,yy,{s:13*k,w:700});yy+=lh*1.6;
+ if(yy<H-20)txt(ctx,`Mean − median = $${(mu-md).toFixed(1)}k`,LX,yy,{s:13*k,w:700,c:PAL['rj']});}
 
 function drawBuild(sim,ctx,k){const R=idxRank(sim),ph=k>1.4,q=Q(sim),top=Math.round(56+18*k),rh=(H-top-(ph?8:30))/7,nx=20,bx=Math.round(150+50*k),bw=W-bx-110*k;
  txt(ctx,'Your index',20,28,{s:15*k,w:700});
@@ -167,20 +170,22 @@ function drawBuild(sim,ctx,k){const R=idxRank(sim),ph=k>1.4,q=Q(sim),top=Math.ro
 function draw(sim,ctx,vdt,k){sim._k=k;ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,W,H);syncVis(sim);
  const v=sim.p.view;if(v==='ledger')drawLedger(sim,ctx,k);else if(v==='spread')drawSpread(sim,ctx,k);else if(v==='build')drawBuild(sim,ctx,k);else drawRank(sim,ctx,k);}
 
-function infoHTML(sim){return `<h3>Bhutan’s Gross National Happiness</h3><p>Bhutan measures progress with a Gross National Happiness (GNH) Index built from a survey: 9 domains (psychological wellbeing, health, education, time use, cultural diversity and resilience, good governance, community vitality, ecological diversity and resilience, living standards) and 33 indicators. A person counts as happy when they reach sufficiency in at least 66% of the weighted indicators.</p>
+/* Context that used to sit under the picture; it now lives in About. */
+const CONTEXT=`<p><b>Bhutan’s Gross National Happiness.</b> Bhutan measures progress with a Gross National Happiness (GNH) Index built from a survey: 9 domains (psychological wellbeing, health, education, time use, cultural diversity and resilience, good governance, community vitality, ecological diversity and resilience, living standards) and 33 indicators. A person counts as happy when they reach sufficiency in at least 66% of the weighted indicators.</p>
 <p>The index is GNH = 1 − H × A, where H is the share of people not yet happy and A is the average share of indicators they still fall short in. In the 2022 survey, H = 51.9% and A ≈ 42.1%, so GNH ≈ 1 − 0.519 × 0.421 ≈ 0.781 (it was 0.756 in 2015 and 0.743 in 2010). Unlike GDP, the GNH Index counts people, not dollars, and it looks at who is falling short.</p>
-<h3>What the Church says about progress</h3><p>Pope Paul VI wrote in <i>Populorum Progressio</i> (1967, no. 14) that development “cannot be restricted to economic growth alone.” It must foster “the development of each man and of the whole man.” Pope Francis, in <i>Laudato Si’</i> (2015, no. 194), says “it is a matter of redefining our notion of progress.”</p>
-<h3>Even GDP’s architect warned about this</h3><p>Simon Kuznets, who built the first U.S. national income accounts, told the Senate in 1934 that a nation’s welfare “can, therefore, scarcely be inferred” from a measure of national income.</p>
-<h3>Which measure is right?</h3><p>This tool does not say. Each measure answers a different question: how much is bought and sold, how long people live, how much schooling they get, how they rate their own lives, how evenly income is shared. Choosing weights means deciding what a good life includes, and that is a question of values, not math. <b>Discuss:</b> what would you add that none of these measures count?</p>`;}
+<p><b>What the Church says about progress.</b> Pope Paul VI wrote in <i>Populorum Progressio</i> (1967, no. 14) that development “cannot be restricted to economic growth alone.” It must foster “the development of each man and of the whole man.” Pope Francis, in <i>Laudato Si’</i> (2015, no. 194), says “it is a matter of redefining our notion of progress.”</p>
+<p><b>A warning from GDP’s architect.</b> Simon Kuznets, who built the first U.S. national income accounts, told the Senate in 1934 that a nation’s welfare “can, therefore, scarcely be inferred” from a measure of national income.</p>
+<p><b>Which measure is right?</b> This tool does not say. Each measure answers a different question: how much is bought and sold, how long people live, how much schooling they get, how they rate their own lives, how evenly income is shared. Choosing weights means deciding what a good life includes, and that is a question of values, not math. <b>Discuss:</b> what would you add that none of these measures count?</p>`;
 
 const SIM={
- id:'measurewealth',hash:'measurewealth',apUnit:5,order:1,tab:'What counts as wealth?',kind:'Simulation',
+ id:'measurewealth',hash:'measurewealth',apUnit:5,order:1,tab:'What counts as wealth?',kind:'Simulation',next:['northsouth'],
+ skills:{bio:'Adding what GDP counts, and ranking data by a measure · Statistics (Chapter 1), AP Macroeconomics (Unit 2)',honors:'Mean vs. median, and the geometric mean (HDI) · Statistics (Chapter 1), Algebra 2 (Unit 4)',ap:'Normalizing to 0 to 1 and weighted means: building an index · Statistics (Chapter 1), Algebra 2 (Unit 5)'},
  card:'Guess how a country’s rank changes when you stop measuring money, then see what GDP counts, what it misses, and build your own index.',
  title:'What counts as wealth?',
  lede:{bio:'When a family pays for chemotherapy, GDP goes up. When a parent cares for Grandma at home, GDP does not move. So is the country with the biggest GDP the best place to live? Rank seven countries a few different ways and see.',
-  honors:'The Human Development Index (HDI) combines health, education and income with a geometric mean, which punishes a country that is strong in one area and weak in another. Means, medians and the Gini coefficient tell you how income is shared.',
+  honors:'The Human Development Index (HDI) combines health, education and income with a geometric mean, which punishes a country that is strong in one area and weak in another. The mean and the median of incomes can tell very different stories.',
   ap:'Every index is a choice: which dimensions, how to scale each one to 0 to 1, how to weight them and how to combine them. Change the weights and the rankings move. The math is checkable; the weights are a question of values.'},
- scale:'Seven countries, north and south, with data from 2022 to 2025. One family’s year for the GDP ledger. One street of 10 households for inequality.',
+ scale:'Seven countries, north and south, with data from 2022 to 2025. One family’s year for the GDP ledger. One street of 10 households for mean and median.',
  aspect:1.6,timeless:true,trials:true,graph:true,
  controlsTitle:'Your measures',
  controls:[
@@ -192,7 +197,6 @@ const SIM={
   ...EV.map(e=>({id:e.id,label:e.l,type:'toggle',def:false,noGut:true})),
   {id:'wage',label:'Value unpaid hours at this wage',type:'range',min:10,max:40,step:0.5,def:17,unit:' $/h',d:2,lvl:'honors',noGut:true,help:'BEA values household work at what a paid household worker would earn. $17 an hour is an assumption for illustration.'},
   {id:'top',label:'Richest household’s income, in thousands of dollars',type:'range',min:110,max:2000,step:10,def:150,unit:'k',lvl:'honors',noGut:true},
-  {id:'lc',label:'Compare a country’s Lorenz curve',type:'select',def:'none',lvl:'honors',noGut:true,options:[{v:'none',l:'None'}].concat(C.map(c=>({v:c.id,l:c.n})))},
   {id:'w_inc',label:'Weight: income',type:'range',min:0,max:10,step:1,def:1,lvl:'ap',noGut:true},
   {id:'w_hea',label:'Weight: health (life expectancy)',type:'range',min:0,max:10,step:1,def:1,lvl:'ap',noGut:true},
   {id:'w_edu',label:'Weight: education',type:'range',min:0,max:10,step:1,def:1,lvl:'ap',noGut:true},
@@ -220,7 +224,6 @@ const SIM={
   {id:'extgdp',label:'GDP + unpaid work, valued at your wage',unit:'dollars',d:0,lvl:'honors',min:null,max:null,get:sim=>sum(sim,'gdp')+sum(sim,'up')*sim.p.wage},
   {id:'smean',label:'Street mean income',unit:'$ thousands',d:1,lvl:'honors',min:0,max:null,get:sim=>meanOf(street(sim))},
   {id:'median',label:'Street median income',unit:'$ thousands',d:1,lvl:'honors',min:0,max:null,get:sim=>medOf(street(sim))},
-  {id:'gini',label:'Street Gini coefficient',unit:'0 = equal, 1 = one has all',d:3,lvl:'honors',min:0,max:1,get:sim=>giniOf(street(sim))},
   {id:'hdicalc',label:'HDI from the formula, this country',unit:'',d:3,lvl:'honors',min:0,max:1,get:sim=>hdiCalc(CB(Q(sim).c))},
   {id:'irank',label:'This country’s rank on your index',unit:'of 7',d:0,lvl:'ap',min:1,max:7,get:sim=>idxRankOf(sim,Q(sim).c)},
   {id:'moved',label:'Countries ranked differently than by GDP',unit:'of 7',d:0,lvl:'ap',min:0,max:7,get:movers}
@@ -233,13 +236,13 @@ const SIM={
   txt(ctx,'More income buys a lot of life at first, then much less.',box.L+8,box.T+box.H-10,{s:12,c:PAL['muted']});},
  draw,
  onClick(sim,x,y){if(sim.p.view!=='ledger'||!sim._lg||x>480)return;const i=Math.floor((y-sim._lg.top)/sim._lg.rh);if(i>=0&&i<EV.length)BioLab.setValues(sim,{[EV[i].id]:!sim.p[EV[i].id]});},
- infoPanel:infoHTML,
  narrate(sim){const v=sim.p.view;
   if(v==='ledger'){const n=on(sim).length,g=sum(sim,'gdp');if(!n)return 'Add events to your family’s year. <b>GDP adds up money spent on goods and services</b>, whether the spending fixes a disaster or buys something new.';
    const w=worseUp(sim),b=betterMissed(sim);return `GDP ${g>=0?'rose':'fell'} by <b>${usd(Math.abs(g))}</b>. ${w?`${w} event${w>1?'s':''} raised GDP while making life harder: the money repaired or treated a loss.`:''} ${b?`${b} good thing${b>1?'s':''} left GDP flat or lower, because nobody was paid for ${b>1?'them':'it'}.`:''}`;}
-  if(v==='spread'){const a=street(sim),mu=meanOf(a),md=medOf(a);return `The mean is $${mu.toFixed(1)}k and the median is $${md.toFixed(1)}k. <b>One very rich household pulls the mean up</b>, but the household in the middle earns the same as before.`;}
+  if(v==='spread'){const a=street(sim),mu=meanOf(a),md=medOf(a);return `The mean is $${mu.toFixed(1)}k and the median is $${md.toFixed(1)}k. <b>One very rich household pulls the mean up</b>, but the household in the middle earns the same as before. (For the Lorenz curve and the Gini index, open the North and South tool.)`;}
   if(v==='build'){const R=idxRank(sim),mv=movers(sim);return `On your index, <b>${R[0].c.n} ranks first</b>, and ${mv} of 7 countries sit in a different place than on GDP per person. Change one weight and watch who moves.`;}
-  const q=Q(sim),c=CB(q.c),g=rankOf(q.c,'gdp');if(!shown(sim))return `${c.n} ranks ${ord(g)} of 7 by GDP per person. <b>Guess where it lands by ${MEAS[q.m].l.toLowerCase()}</b>, then lock it in.`;
+  const q=Q(sim),c=CB(q.c),g=rankOf(q.c,'gdp');if(BioLab.calcPending&&BioLab.calcPending(sim))return `Your turn: count the countries that beat ${c.n} on ${MEAS[q.m].l.toLowerCase()}, then add 1.`;
+  if(!shown(sim))return `${c.n} ranks ${ord(g)} of 7 by GDP per person. <b>Guess where it lands by ${MEAS[q.m].l.toLowerCase()}</b>, then lock it in.`;
   const m=sim.p.measure,r=rankOf(q.c,m);if(r==null)return `${c.n} is not in the 2023 to 2025 World Happiness Report survey, so it has no rank on this list.`;
   return `${c.n}: ${ord(g)} by GDP per person, <b>${ord(r)} by ${MEAS[m].l.toLowerCase()}</b> (${MEAS[m].f(MEAS[m].get(c))}). ${r===g?'Same place: this measure agrees with GDP here.':r<g?'It does better here than its income alone suggests.':'It does worse here than its income alone suggests.'}`;},
  gut:{better:'lower',controls:['grank'],
@@ -247,6 +250,19 @@ const SIM={
    honors:'Before you look: pick the rank you think the orange country gets on the new list, then lock it in.'},
   lock(sim){const q=Q(sim);return {v:Math.abs(sim.p.grank-truth(sim)),r:sim.p.grank,q:sim.p.gq,label:`${CB(q.c).n} ${ord(sim.p.grank)} by ${MEAS[q.m].l.toLowerCase()}`};},
   solve(sim){const q=Q(sim),t=truth(sim);sim.p.grank=t;sim.p.measure=q.m;sim.p.show=true;sim.p.view='rank';return {v:0,r:t,q:sim.p.gq,label:`${CB(q.c).n} ${ord(t)} by ${MEAS[q.m].l.toLowerCase()}`};},
+  hint:{bio:'Lock in your guess. Then you will work out the real place yourself from the numbers.'},
+  calc:{unit:'',d:0,tol:0.4,after:'lock',nextLabel:'Continue',
+   prompt:sim=>{const q=Q(sim),M=MEAS[q.m],c=CB(q.c),L=listed(q.m);return `${c.n} has <b>${M.f(M.get(c))}</b> for ${M.l.toLowerCase()}. The others: ${L.filter(x=>x.id!==q.c).map(x=>`${x.n} ${M.f(M.get(x))}`).join(', ')}. ${M.hi?'Highest':'Lowest'} is 1st${q.m==='eq'?' (a lower Gini is more equal)':''}. What place is ${c.n} on this list of ${L.length}?`;},
+   answer:sim=>truth(sim),
+   hint:'Count how many countries beat it on this measure, then add 1.',
+   steps(sim){const q=Q(sim),M=MEAS[q.m],c=CB(q.c),b=beaters(sim),L=ranked(q.m);
+    return [`${M.hi?'Higher':'Lower'} than ${c.n}’s ${M.f(M.get(c))}: ${b.length?b.map(x=>`${x.n} (${M.f(M.get(x))})`).join(', '):'no one'}. That is ${b.length} countr${b.length===1?'y':'ies'}.`,
+     `Place = ${b.length} + 1 = <b>${ord(truth(sim))}</b> of ${L.length}.`,
+     `By GDP per person it is ${ord(rankOf(q.c,'gdp'))}.`];}},
+  formula(sim){const q=Q(sim),M=MEAS[q.m],c=CB(q.c),b=beaters(sim),L=ranked(q.m);
+   const base=`Place = 1 + (countries ${M.hi?'above':'below'} ${M.f(M.get(c))}) = 1 + ${b.length} = ${ord(truth(sim))} of ${L.length}`;
+   if(q.m==='hdi'){const hp=hdiParts(c);return base+`<br>HDI = (health × education × income)^(1/3) = (${hp.map(x=>x.toFixed(3)).join(' × ')})^(1/3) = ${hdiCalc(c).toFixed(3)}`;}
+   return base;},
   how:{bio:'The math sorts the seven countries by the new measure, highest first (lowest first for the Gini, where lower means more equal), and reads off the place.',
    honors:'Sort by the new measure and read the place. HDI is a geometric mean: HDI = (health index × education index × income index)^(1/3), each index scaled from 0 to 1.'},
   compare(sim,g,m){const q=GQ[g.q]||Q(sim),c=CB(q.c),M=MEAS[q.m],gr=rankOf(q.c,'gdp'),off=Math.abs(g.r-m.r),list=ranked(q.m);
@@ -259,12 +275,11 @@ const SIM={
   again(sim){const ks=Object.keys(GQ).filter(k=>atLeast(GQ[k].lvl)&&k!==sim.p.gq),k=ks[Math.floor(Math.random()*ks.length)];const q=GQ[k];sim.p.gq=k;sim.p.measure=q.m;sim.p.grank=rankOf(q.c,'gdp');sim.p.show=false;sim.p.view='rank';}
  },
  challenges:[
+  {lvl:'bio',kind:'num',q:'A different family’s year: a $9,000 car repair after a crash, a $1,200 emergency room visit, 300 hours of unpaid care for a cousin, and no flu, so $400 less spent on medicine. By how many dollars does GDP change?',answer:9800,tol:1,unit:'$',d:0,hint:'Add the money that changed hands. Unpaid hours add $0. Money not spent counts as a minus.',explain:'$9,000 + $1,200 + $0 − $400 = $9,800. The crash and the ER visit raise GDP; the 300 hours of care and the healthy year do not show up as gains.'},
   {lvl:'bio',instant:true,q:'Grandpa needs $50,000 of chemotherapy. What happens to GDP?',choices:['It goes up by $50,000','It goes down, because the family is worse off','It does not change'],correct:0,explain:'GDP adds up money paid for goods and services. Treatment is a service, so GDP rises by $50,000, even though nobody wished for the illness. A bigger number is not always a better year.'},
   {lvl:'bio',instant:true,q:'A parent moves to a 4-day week, earns $12,000 less and gets 400 more hours at home. What does GDP show?',choices:['A gain, because the family has more time','A loss of about $12,000','No change'],correct:1,explain:'GDP only sees the paid work that stopped: about $12,000 less output. The 400 hours of family time are real, but GDP gives them no value.'},
-  {lvl:'bio',instant:true,q:'Costa Rica’s GDP per person ($18,853) is about a fifth of the U.S. figure ($86,170). Whose people can expect to live longer?',choices:['The United States, by about 5 years','About the same','Costa Rica, by about 1.5 years'],correct:2,explain:'Costa Rica 80.8 years, United States 79.3 (UNDP, 2023): 1.5 years more on 22% of the income per person. Health depends on much more than money spent.'},
   {lvl:'honors',instant:true,q:'Country A has health, education and income indices of 0.8, 0.8 and 0.8. Country B has 1.0, 1.0 and 0.4. Both average 0.8. Which has the higher HDI?',choices:['Country A','Country B','They tie'],correct:0,explain:'HDI uses a geometric mean. A: (0.8 × 0.8 × 0.8)^(1/3) = 0.800. B: (1.0 × 1.0 × 0.4)^(1/3) ≈ 0.737. A geometric mean punishes imbalance: strength in two areas cannot fully make up for weakness in a third.'},
   {lvl:'honors',instant:true,q:'On the street of 10 households, the richest income jumps from $150k to $1,500k. What happens to the median?',choices:['It rises a lot','It stays at $60.5k','It falls'],correct:1,explain:'The median is the middle: the average of the 5th and 6th households, ($56k + $65k) ÷ 2 = $60.5k. The mean jumps from $68.3k to $203.3k. That is why reports on typical incomes use the median.'},
-  {lvl:'honors',instant:true,q:'Nigeria’s GDP per person in U.S. dollars fell from $2,139 (2023) to $1,084 (2024), but at local prices (PPP) it rose from $8,712 to $9,100. What explains the gap?',choices:['Nigerians produced half as much','The naira lost value against the dollar, so the same output was worth fewer dollars','PPP is just GDP with inflation removed'],correct:1,explain:'Market exchange rates swing with currency markets. PPP compares what incomes actually buy at local prices, so it moves much less. For comparing living standards, PPP is usually the better choice.'},
   {lvl:'ap',instant:true,q:'U.S. inputs: life expectancy 79.3, expected schooling 15.9 years, mean schooling 13.9 years, GNI per person $73,650 (PPP). Health index = (79.3 − 20) ÷ 65, education = average of 15.9 ÷ 18 and 13.9 ÷ 15, income = (ln 73,650 − ln 100) ÷ (ln 75,000 − ln 100). What HDI does the formula give?',choices:['About 0.905','About 0.937','About 0.950','About 0.997'],correct:1,explain:'Health 0.912, education 0.905, income 0.997. Geometric mean: (0.912 × 0.905 × 0.997)^(1/3) ≈ 0.937. UNDP publishes 0.938; the small gap is rounding in the inputs.'},
   {lvl:'ap',instant:true,q:'In Bhutan’s 2022 survey, 51.9% of people were not yet happy, and on average they fell short in about 42.1% of indicators. What is GNH = 1 − H × A?',choices:['About 0.219','About 0.481','About 0.781','About 0.939'],correct:2,explain:'H × A = 0.519 × 0.421 ≈ 0.218, so GNH ≈ 1 − 0.218 ≈ 0.781, the value Bhutan reported for 2022. GNH rises if fewer people fall short or if those who do fall short in fewer areas.'},
   {lvl:'ap',instant:true,q:'With equal weights on all five measures, Costa Rica ranks 3rd. You put all the weight on happiness. Where does it go?',choices:['It stays 3rd','It rises to 1st','It falls to 5th'],correct:1,explain:'Costa Rica has the highest ladder score of the six surveyed countries (7.44). An index ranking says as much about the weights as about the countries.'}
@@ -276,11 +291,11 @@ const SIM={
   {title:'Rank by money',text:'The left list ranks seven countries by GDP per person. Norway and the United States are far ahead; Nigeria is last.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'rank',gq:'cr_le',show:false}),focus:[0,0,460,500]},
   {title:'Rank by how long people live',text:'Now the right list ranks them by life expectancy. Costa Rica moves up to 2nd: its people live 80.8 years, 1.5 more than in the United States. The crossing lines show where money and health part ways.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'rank',measure:'le',show:true})},
   {title:'Rank by how people rate their lives',text:'On the World Happiness Report’s 0 to 10 ladder, Costa Rica is 1st of these six (7.44), ahead of Norway (7.24) and the United States (6.82). Bhutan was not surveyed in 2023 to 2025.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'rank',measure:'hap',show:true})},
-  {lvl:'honors',title:'Average vs. typical',text:'One street, 10 households. Drag the richest income up to $1,500k: the mean jumps to $203.3k, but the median stays at $60.5k. The Lorenz curve bows away from the equality line, and the Gini rises.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'spread',top:1500})},
+  {lvl:'honors',title:'Average vs. typical',text:'One street, 10 households. Drag the richest income up to $1,500k: the sum jumps to $2,033k, so the mean jumps to $2,033k ÷ 10 = $203.3k. The median stays at ($56k + $65k) ÷ 2 = $60.5k, because the middle two households did not change.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'spread',top:1500})},
   {lvl:'ap',title:'Build your own index',text:'Pick weights for income, health, education, happiness and equality. With the HDI recipe (the first three, geometric mean), your index matches UNDP’s HDI to within 0.002. Shift the weights and see who moves.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'build',w_inc:1,w_hea:1,w_edu:1,w_hap:0,w_eq:0,comb:'geo'})}
  ],
  lab:{bio:'<p><b>Question:</b> Does a bigger GDP always mean a better year?</p><ol><li>Open <b>What GDP counts</b>. Add one event at a time. Record a trial after each.</li><li>Sort your events into two lists: GDP up but life worse, and life better but GDP flat or down.</li><li>Switch to <b>Rank the countries</b>. Turn on <b>Show the real ranking</b> and try each measure.</li></ol><p>Write two sentences: which country moves the most when you stop ranking by money, and what might explain it?</p>',
-  honors:'<p><b>Question:</b> What does each measure hide?</p><ol><li>In <b>Average vs. typical</b>, set the richest income to $150k, $500k, $1,000k and $2,000k. Record the mean, median and Gini each time.</li><li>Compare the street’s Lorenz curve with Norway’s and Costa Rica’s.</li><li>In <b>Rank the countries</b>, compare GDP per person with GDP at local prices (PPP). Which countries move?</li></ol><p>Explain why a news story about “average income” could mislead.</p>',
+  honors:'<p><b>Question:</b> What does each measure hide?</p><ol><li>In <b>Average vs. typical</b>, set the richest income to $150k, $500k, $1,000k and $2,000k. Record the mean and median each time.</li><li>For one setting, compute the mean and the median by hand and check them against the readouts.</li><li>In <b>Rank the countries</b>, compare GDP per person with GDP at local prices (PPP). Which countries move?</li></ol><p>Explain why a news story about “average income” could mislead.</p>',
   ap:'<p><b>Question:</b> How sensitive is a ranking to its weights?</p><ol><li>Press <b>Use the HDI recipe</b> and check that the ranking matches UNDP’s HDI order.</li><li>Raise one weight at a time from 0 to 10 and record the rank of one country.</li><li>Switch between a weighted average and a geometric mean. Which countries move, and why?</li></ol><p><b>CER:</b> Make a claim about how much the ranking depends on the weights, with evidence from your trials and reasoning about normalization and the mean you used. Your weights are your own choice; the math must be right.</p>'},
  terms:[
   {t:'GDP (gross domestic product)',d:'The market value of all final goods and services produced in a country in a year.'},
@@ -290,7 +305,7 @@ const SIM={
   {t:'Life evaluation (Cantril ladder)',d:'A survey question: picture a ladder from 0 (worst possible life) to 10 (best possible life). Which step are you on now?'},
   {t:'PPP (purchasing power parity)',d:'Converts incomes using what money buys at local prices, rather than market exchange rates.',lvl:'honors'},
   {t:'Mean and median',d:'The mean adds every value and divides by how many there are. The median is the middle value when they are sorted.',lvl:'honors'},
-  {t:'Lorenz curve and Gini coefficient',d:'The Lorenz curve plots the share of income held by the poorest x% of people. The Gini is the gap between it and the equality line: 0 means everyone has the same, 1 means one person has it all.',lvl:'honors'},
+  {t:'Gini index',d:'A measure of how evenly income is shared: 0 means everyone has the same, 100 means one person has it all. The North and South tool shows how it is computed from a Lorenz curve.'},
   {t:'Human Development Index (HDI)',d:'UNDP’s index: the geometric mean of a health index, an education index and an income index, each from 0 to 1.',lvl:'honors'},
   {t:'Geometric mean',d:'The nth root of the product of n numbers. It is lower than the ordinary average whenever the numbers are unequal.',lvl:'honors'},
   {t:'Normalization',d:'Rescaling a measure to a common range, such as 0 to 1, using fixed goalposts: (value − minimum) ÷ (maximum − minimum).',lvl:'ap'},
@@ -305,7 +320,7 @@ const SIM={
 <p><b>Your family’s year</b> is an illustration: every dollar and hour in the ledger (chemotherapy $50,000, roof and car $18,000, 730 hours of care, and so on) is an assumption, not data. For scale, U.S. health spending was $5.3 trillion in 2024, 18.0% of GDP (CMS National Health Expenditure fact sheet, <a href="https://www.cms.gov/data-research/statistics-trends-and-reports/national-health-expenditure-data/nhe-fact-sheet" target="_blank" rel="noopener">cms.gov</a>). The street of 10 households is also made up.</p>
 <p><b>Gross National Happiness</b>: Centre for Bhutan Studies and GNH Research, 2022 GNH Index results (9 domains, 33 indicators, 66% sufficiency cutoff; GNH 0.781 in 2022, 0.756 in 2015, 0.743 in 2010; 51.9% not yet happy), via OPHI (<a href="https://ophi.org.uk/sites/default/files/2023-07/Bhutan_GNH_2022_press_release.pdf" target="_blank" rel="noopener">2022 press release</a>, <a href="https://ophi.org.uk/node/3258" target="_blank" rel="noopener">ophi.org.uk</a>). A ≈ 42.1% is computed here from the published group shares and sufficiency levels.</p>
 <p><b>Quotations</b>: Paul VI, <i>Populorum Progressio</i> (1967), no. 14 (<a href="https://www.vatican.va/content/paul-vi/en/encyclicals/documents/hf_p-vi_enc_26031967_populorum.html" target="_blank" rel="noopener">vatican.va</a>); Francis, <i>Laudato Si’</i> (2015), no. 194 (<a href="https://www.vatican.va/content/francesco/en/encyclicals/documents/papa-francesco_20150524_enciclica-laudato-si.html" target="_blank" rel="noopener">vatican.va</a>); Simon Kuznets (1934), as quoted by BEA in <i>Survey of Current Business</i>, June 2020 (<a href="https://apps-fd.bea.gov/scb/issues/2020/06-june/pdf/0620-beyond-gdp-berndt.pdf" target="_blank" rel="noopener">apps-fd.bea.gov</a>). The broken window is from Frédéric Bastiat, “That Which Is Seen, and That Which Is Not Seen” (1850).</p>
-<p><b>No measure here is the right one.</b> Rankings are math; which measure matters most is a question of values, and the tool never scores it.</p>`
+<p><b>No measure here is the right one.</b> Rankings are math; which measure matters most is a question of values, and the tool never scores it.</p>`+CONTEXT+'<p><b>What this number hides.</b> A rank hides how far apart the countries are: by life expectancy, Bhutan is 1.0 year ahead of India and India is 17.5 years ahead of Nigeria, and each gap is one place. It also hides how income and health are shared inside each country, and anyone a survey does not reach.</p>'
 };
 BioLab.register(SIM);
 })();

@@ -31,7 +31,11 @@ const lineTax=(sim,m)=>schAV(sim)*m/1000;
 const saveSen=sim=>{if(!senior(sim))return 0;const v=+sim.p.val,s=Math.min(v,200000)*0.5,v1=v-s;
  const loc0=(v-locCut(sim,v))*LOC[yr(sim)],loc1=(v1-locCut(sim,v1))*LOC[yr(sim)];return s*SCH*dist(sim).tot/1000+(loc0-loc1)*othM(sim)/1000;};
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
-const shown=sim=>!!(sim.p.show||(GS(sim)&&GS(sim).g));
+/* The tax stays hidden while the student works it out by hand ("Your turn"). */
+const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
+const shown=sim=>!!(sim.p.show||(GS(sim)&&GS(sim).g&&!pend(sim)));
+const c2=v=>Math.round(v*100)/100;
+const calcAns=sim=>c2(schTax(sim));
 const $2=v=>(v<0?'−':'')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const $0=v=>(v<0?'−':'')+'$'+Math.round(Math.abs(v)).toLocaleString('en-US');
 const m3=v=>(+v).toFixed(3);
@@ -62,6 +66,8 @@ function draw(sim,ctx,vdt,k){const W=800,H=500,d=dist(sim),sh=shown(sim),G=GS(si
  row(ph?`Local AV ${lr}`:(yr(sim)==='2026'?`Local assessed value: 6.8% after −10%`:`Local assessed value: 6.25%`),null,$0(locAV(sim)));
  row(ph?'County, city, etc.':'County, city, special districts (example)',m3(othM(sim)),$2(othTax(sim)));
  row(ph?'Total bill':'Total yearly bill',null,sh?$2(totTax(sim)):'?',{w:700,cc:sh?PAL['cv-ink']:PAL['s4']});
+ if(G&&G.m&&!ph&&y<470){y+=4;txt(ctx,`The math: ${$0(schAV(sim))} × ${m3(d.tot)} ÷ 1,000 = ${$2(schTax(sim))}`,xL,y,{s:12*k,w:700,c:PAL['rj']});y+=lh;}
+ else if(pend(sim)){y+=4;txt(ctx,ph?'Your turn: find the ?':'Your turn: work out the school total (?)',xL,y,{s:12*k,w:700,c:PAL['rj']});y+=lh;}
  if(sh&&!ph){y+=4;row(ph?'School, per month':'School tax per month',null,$2(schTax(sim)/12),{c:PAL['cv-soft']});if(hon)row(ph?'School, % of value':'School tax as a percent of value',null,(schTax(sim)/v*100).toFixed(3)+'%',{c:PAL['cv-soft']});}
  /* ---- right: same mill, different dollars ---- */
  const X0=ph?454:500,X1=788,BW=X1-X0;let ry=Math.round(14+16*k);
@@ -85,21 +91,26 @@ function plot(sim,ctx,box){const ax=axes(ctx,box,{xmin:0,xmax:3,ymin:0,ymax:1600
   txt(ctx,$0(b),ax.X(i+0.5),ax.Y(b)-6,{s:12,w:700,c:PAL['fg'],a:'center'});});
  legend(ctx,box.L+10,box.T+8,[{label:'Local share',color:PAL['s2']},{label:'State share',color:PAL['s3']},{label:'Overrides',color:PAL['s5']}]);}
 
+function infoMore(){
+ const fam=`<p><b>For families.</b> <b>Renters:</b> economists teach that a tax on property can be shifted to tenants through rent, depending on how many rentals there are and how many people want them. How much is shifted in a real market is debated. The slider <b>Share passed on to rent</b> (Closer look) is an assumption, not a measured fact. <b>Seniors:</b> Colorado’s senior exemption takes 50% off the first $200,000 of a home’s actual value for owners 65 or older who have owned and lived in the home at least 10 years in a row. The state pays local governments back. In 2025, 304,141 homes got it, and the state reimbursed $172,985,247.41 (about $569 a home on average). Apply with the county assessor by July 15.</p>`;
+ const views=`<p><b>Two views: paying for schools with local property.</b> <i>For local overrides and local control:</i> voters in each district decide directly whether to tax themselves more for their own schools, and they see what they get. Communities that want more for schools can choose it. <i>For more state equalization:</i> one mill raises ${$2(D.lps.mill)} per student in Littleton and ${$2(D.aps.mill)} in Aurora, so the same tax effort buys different amounts. Critics say a student’s school funding should not depend on the property values of the district they happen to live in.</p>
+  <p><b>Two views: property tax relief.</b> <i>For lower assessment rates:</i> when home values jump, bills can rise faster than family incomes, which is hardest on people with fixed incomes. Relief keeps families in their homes. <i>For keeping the revenue:</i> lower rates cut money for schools and local services unless the state replaces it, and the state’s own revenue is capped by TABOR. Who should carry the cost is the open question. Which mix is fair is a question of values. The math in this tool is not.</p>`;
+ const laws=`<p><b>Laws and ballot measures.</b></p><ul><li><b>Amendment B (2020)</b> repealed the Gallagher Amendment, which had adjusted the residential assessment rate to keep homes’ share of assessed value stable.</li><li><b>Proposition HH (2023)</b> would have lowered property taxes and let the state keep more revenue under its TABOR cap. Voters rejected it.</li><li><b>SB24-233</b> split the residential rate in two, one for schools and one for other local governments, starting in 2025. <b>HB24B-1001</b> set the rates: 7.05% for schools and 6.25% (2025) or 6.8% after a 10% value cut (2026) for local governments.</li><li><b>HB24-1448</b> created a new school finance formula, phased in from 15% in FY2025-26 to 100% in FY2031-32.</li><li><b>TABOR</b> requires voter approval for tax increases, including overrides and bonds. See <a href="#tabor">Colorado’s TABOR machine</a>.</li></ul>`;
+ const other=`<p><b>Other states.</b> Most states pair a state formula with local property taxes, as Colorado does. Hawaii runs one statewide school district. The Education Law Center, an advocacy group that pushes for fairer school funding, grades Colorado (2022-23 data) C on funding level ($16,780 per student, state and local, cost-adjusted), B on distribution (how high-poverty districts are funded compared with low-poverty ones) and F on effort (2.66% of state GDP, against a 3.10% national average). Those are its own measures and grades.</p>`;
+ return fam+views+laws+other;}
 function infoHTML(sim){const d=dist(sim),T=totTax(sim),pass=(+sim.p.pass)/100,hon=atLeast('honors');
  const hide=`<h3>What this number hides</h3><ul>
-  <li><b>Renters.</b> A renter’s name is on no property tax bill, yet the owner of a rental like this one pays ${$2(T)} a year. If all of it is passed on, that is ${$2(T/12)} a month in rent; if half, ${$2(T/24)}. How much is passed on is debated (see below).</li>
+  <li><b>Renters.</b> A renter’s name is on no property tax bill, yet the owner of a rental like this one pays ${$2(T)} a year. If all of it is passed on, that is ${$2(T/12)} a month in rent; if half, ${$2(T/24)}. How much is passed on is debated (see About this model).</li>
   <li><b>Students whose needs cost more.</b> ${d.short}’s ${$0(d.ppr)} per student is an average. The state formula (HB24-1448) adds money for students at risk, English learners and special education, so the dollars behind one student can be far from the average.</li>
   <li><b>Schools within a district.</b> A district’s per-student figure says nothing about how it splits money among its own schools.</li>
   <li><b>Override money.</b> The ${$0(d.ppr)} leaves out voter-approved overrides: ${m3(d.ovr)} mills × ${$0(d.av)} ÷ 1,000 ÷ ${d.n.toLocaleString('en-US')} students ≈ ${$0(d.opp)} more per student.</li></ul>`;
- const fam=`<h3>For families</h3><p><b>Renters:</b> economists teach that a tax on property can be shifted to tenants through rent, depending on how many rentals there are and how many people want them. How much is shifted in a real market is debated. ${hon?`The slider <b>Share passed on to rent</b> is your assumption, not a measured fact.`:''}</p><p><b>Seniors:</b> Colorado’s senior exemption takes 50% off the first $200,000 of a home’s actual value for owners 65 or older who have owned and lived in the home at least 10 years in a row. The state pays local governments back. In 2025, 304,141 homes got it, and the state reimbursed $172,985,247.41 (about $569 a home on average). Apply with the county assessor by July 15.</p>`;
- const views=`<h3>Two views: paying for schools with local property</h3><p><b>For local overrides and local control:</b> voters in each district decide directly whether to tax themselves more for their own schools, and they see what they get. Communities that want more for schools can choose it.</p><p><b>For more state equalization:</b> one mill raises ${$2(D.lps.mill)} per student in Littleton and ${$2(D.aps.mill)} in Aurora, so the same tax effort buys different amounts. Critics say a student’s school funding should not depend on the property values of the district they happen to live in.</p>
-  <h3>Two views: property tax relief</h3><p><b>For lower assessment rates:</b> when home values jump, bills can rise faster than family incomes, which is hardest on people with fixed incomes. Relief keeps families in their homes.</p><p><b>For keeping the revenue:</b> lower rates cut money for schools and local services unless the state replaces it, and the state’s own revenue is capped by TABOR. Who should carry the cost is the open question.</p><p class="help">Which mix is fair is a question of values. The math in this tool is not.</p>`;
- const laws=`<h3>Laws and ballot measures</h3><ul><li><b>Amendment B (2020)</b> repealed the Gallagher Amendment, which had adjusted the residential assessment rate to keep homes’ share of assessed value stable.</li><li><b>Proposition HH (2023)</b> would have lowered property taxes and let the state keep more revenue under its TABOR cap. Voters rejected it.</li><li><b>SB24-233</b> split the residential rate in two, one for schools and one for other local governments, starting in 2025. <b>HB24B-1001</b> set the rates: 7.05% for schools and 6.25% (2025) or 6.8% after a 10% value cut (2026) for local governments.</li><li><b>HB24-1448</b> created a new school finance formula, phased in from 15% in FY2025-26 to 100% in FY2031-32.</li><li><b>TABOR</b> requires voter approval for tax increases, including overrides and bonds. See <a href="#tabor">Colorado’s TABOR machine</a>.</li></ul>`;
- const other=`<h3>Other states</h3><p>Most states pair a state formula with local property taxes, as Colorado does. Hawaii runs one statewide school district. The Education Law Center, an advocacy group that pushes for fairer school funding, grades Colorado (2022-23 data) C on funding level ($16,780 per student, state and local, cost-adjusted), B on distribution (how high-poverty districts are funded compared with low-poverty ones) and F on effort (2.66% of state GDP, against a 3.10% national average). Those are its own measures and grades.</p>`;
- return hide+fam+views+laws+other;}
+ return hide;}
+/* Long context lives in About this model, off the working screen. */
+const ABOUT_MORE=infoMore();
 
 const SIM={
  id:'propertytax',hash:'propertytax',apUnit:4,order:3,tab:'Your house, your school',kind:'Simulation',next:['tabor'],
+ skills:{bio:'Percent of a value and rates per 1,000 (mills) · Algebra 1 (Unit 2), US Government (Final: Colorado ballot)',honors:'Multi-step rates, and dividing a total by students · Algebra 1 (Units 2 and 3), AP Macroeconomics (Unit 1)',ap:'Rates per student, and solving for the mills that match a target · Algebra 1 (Unit 2), AP Microeconomics (Unit 6: tax incidence)'},
  card:'Read a real Colorado property tax bill line by line, guess a home’s school tax, then see why one mill buys different dollars per student in Cherry Creek, Aurora and Littleton.',
  title:'Your house, your school: property tax and school funding',
  lede:{bio:'Every home in Colorado pays property tax, and the biggest share usually goes to the local school district. Build a real bill from real Arapahoe County school tax rates, and see how much of a student’s school funding comes from the homes around them.',
@@ -139,6 +150,7 @@ const SIM={
  graphs:[{id:'pp',label:'Per student: local share, state share and overrides',custom:true}],
  plot,draw,infoPanel:infoHTML,
  narrate(sim){const d=dist(sim),av=schAV(sim);
+  if(!shown(sim)&&pend(sim))return `<b>Your turn:</b> value × 7.05% = school assessed value; then × ${m3(d.tot)} mills ÷ 1,000.`;
   if(!shown(sim))return `This home’s school assessed value is ${$0(av)}. ${d.name} levies ${m3(d.tot)} mills on it. <b>How much school tax is that in a year?</b> Guess first, then work it out by hand: assessed value × mills ÷ 1,000.`;
   const t=schTax(sim),o=KEYS.filter(k=>D[k]!==d).map(k=>`${$2(D[k].mill)} in ${D[k].short}`).join(' and ');
   let s=`${m3(d.tot)} mills on ${$0(av)} is <b>${$2(t)} a year</b> for ${d.short} schools, about ${$2(t/12)} a month. One mill here raises ${$2(d.mill)} per student, against ${o}.`;
@@ -146,8 +158,19 @@ const SIM={
   else if(senior(sim))s+=` The senior exemption saves this owner ${$2(saveSen(sim))} a year.`;
   return s;},
  gut:{better:'lower',controls:['guess'],
-  ask:{bio:'A home worth the value shown sits in the school district shown. The school district’s lines on its bill add up to the mills in the picture. How many dollars a year does this home pay for schools? Drag <b>Your guess</b> and lock it in. Then, before you press the math button, work it out by hand: value × 7.05% × mills ÷ 1,000.',
-   honors:'Before you multiply: how much school district tax does this home pay in a year? Set <b>Your guess</b> by feel and lock it in. Then compute it by hand (value × 7.05% × mills ÷ 1,000) before the math takes its turn.'},
+  ask:{bio:'A home worth the value shown sits in the school district shown. The school district’s lines on its bill add up to the mills in the picture. How many dollars a year does this home pay for schools? Drag <b>Your guess</b> by feel and lock it in.',
+   honors:'Before you multiply: how much school district tax does this home pay in a year? Set <b>Your guess</b> by feel and lock it in.'},
+  hint:'Lock in your gut answer. Then you will work out the bill yourself: value × 7.05% × mills ÷ 1,000.',
+  calc:{unit:'$',d:2,tol:a=>Math.max(1,0.005*a),
+   prompt:sim=>{const d=dist(sim),v=+sim.p.val,so=senOff(sim,v);return `The home is worth <b>${$0(v)}</b>${so?` (the senior exemption takes off ${$0(so)})`:''}. Schools tax <b>7.05%</b> of that value, and ${d.short}’s school lines add up to <b>${m3(d.tot)} mills</b>. A mill is $1 per $1,000 of assessed value. How many dollars a year does this home pay for schools?`;},
+   answer:calcAns,
+   hint:'Step 1: value × 0.0705 is the assessed value. Step 2: assessed value ÷ 1,000 × the mills.',
+   steps(sim){const d=dist(sim),v=+sim.p.val,so=senOff(sim,v),av=schAV(sim),out=[];
+    if(so)out.push(`Senior exemption: ${$0(v)} − ${$0(so)} = ${$0(v-so)}.`);
+    out.push(`School assessed value: ${$0(v-so)} × 0.0705 = ${$0(av)}.`);
+    out.push(`Tax: ${$0(av)} ÷ 1,000 = ${$2(av/1000)} per mill, and ${$2(av/1000)} × ${m3(d.tot)} = <b>${$2(calcAns(sim))}</b> a year.`);
+    out.push(`That is about ${$2(calcAns(sim)/12)} a month.`);return out;}},
+  formula(sim){const d=dist(sim),v=+sim.p.val-senOff(sim,+sim.p.val);return `School tax = ${$0(v)} × 0.0705 × ${m3(d.tot)} ÷ 1,000 = ${$2(schTax(sim))} a year`;},
   lock(sim){const t=schTax(sim);return {v:Math.abs(sim.p.guess-t),guess:+sim.p.guess,label:$0(sim.p.guess)+' a year'};},
   solve(sim){const t=schTax(sim);sim.p.guess=Math.round(t);sim.p.show=true;return {v:Math.abs(Math.round(t)-t),guess:t,label:$2(t)+' a year'};},
   how:{bio:'Step 1: school assessed value = actual value × 7.05%. Step 2: a mill is $1 of tax for every $1,000 of assessed value, so tax = assessed value × mills ÷ 1,000.',
@@ -160,6 +183,7 @@ const SIM={
   again(sim){sim.p.dist=KEYS[Math.floor(Math.random()*3)];sim.p.val=Math.round((300000+Math.random()*700000)/10000)*10000;sim.p.guess=1500;sim.p.show=false;}
  },
  challenges:[
+  {lvl:'bio',kind:'num',q:'A $400,000 home is in Aurora Public Schools, where the school lines add up to 71.331 mills. Schools tax 7.05% of the value. How many dollars a year does this home pay for schools?',answer:2011.53,tol:1,unit:'$',d:2,hint:'$400,000 × 0.0705 is the assessed value. Divide by 1,000, then multiply by 71.331.',explain:'$400,000 × 0.0705 = $28,200 of assessed value. $28,200 ÷ 1,000 × 71.331 = $2,011.53 a year, about $167.63 a month.'},
   {lvl:'bio',instant:true,q:'A $500,000 home is in a school district. Schools use a 7.05% assessment rate. What is the school assessed value?',choices:['$500,000','$35,250','$3,525'],correct:1,explain:'Assessed value = actual value × assessment rate = $500,000 × 0.0705 = $35,250. Mills apply to this smaller number, not to the home’s full value.'},
   {lvl:'bio',instant:true,q:'A district levies 1 mill on a home with $35,250 of school assessed value. How much tax is that?',choices:['$35.25','$352.50','$3,525'],correct:0,explain:'A mill is $1 per $1,000 of assessed value: $35,250 ÷ 1,000 × 1 = $35.25. Cherry Creek’s 53.962 mills make $35.25 × 53.962 = $1,902.16.'},
   {lvl:'bio',instant:true,q:'What this number hides: a family rents an apartment. Their name is on no property tax bill. Do they pay any property tax?',choices:['No: only owners pay property tax','Possibly part of it, through rent; how much is debated','Yes: renters get their own bill'],correct:1,explain:'The bill goes to the owner. Economics teaches that owners can pass some of the tax on through rent, depending on the market. Economists disagree on how much, so the bill hides a cost renters may carry.'},
@@ -181,7 +205,7 @@ const SIM={
   {lvl:'ap',title:'Overrides sit outside the formula',text:'An override of x mills raises x × assessed value ÷ 1,000. Five mills: $704.88 per student in Aurora, $886.15 in Cherry Creek, $973.57 in Littleton. That is where property wealth still shows.',pause:true,setup:sim=>BioLab.setValues(sim,{xm:5,dist:'aps'})}
  ],
  onTourExit(sim){BioLab.setValues(sim,{xm:0,dist:'cc',show:false});},
- lab:{bio:'<p><b>Question:</b> How does a home’s value change its school tax?</p><ol><li>Before you turn on <b>Show the taxes</b>, compute the school tax for the $500,000 home by hand: value × 7.05% × mills ÷ 1,000. Then turn it on and check.</li><li>Record a trial at $300,000, $500,000 and $800,000 in one district.</li><li>Switch districts and repeat for $500,000.</li></ol><p>Write two sentences: what happens to the tax when the value rises 10%, and why do two districts tax the same home differently?</p>',
+ lab:{bio:'<p><b>Question:</b> How does a home’s value change its school tax?</p><ol><li>Turn on <b>Show the taxes</b> and check the school tax for the $500,000 home against your own calculation.</li><li>Record a trial at $300,000, $500,000 and $800,000 in one district.</li><li>Switch districts and repeat for $500,000.</li></ol><p>Write two sentences: what happens to the tax when the value rises 10%, and why do two districts tax the same home differently?</p>',
   honors:'<p><b>Question:</b> Who carries the cost?</p><ol><li>For a $500,000 home in each district, record the total bill.</li><li>Turn on the senior exemption and record what it saves.</li><li>Set <b>Share passed on to rent</b> to 0%, 50% and 100%. Record the monthly rent change.</li></ol><p>Explain what the bill shows and what it hides about who pays, using numbers from your table.</p>',
   ap:'<p><b>Question:</b> Does the same tax effort buy the same schools?</p><ol><li>Set <b>Extra override mills</b> to 5. Record the dollars per student in each district.</li><li>Find how many mills Aurora needs to match Littleton’s 5 mills per student.</li><li>Record what that costs a $500,000 home in each district.</li></ol><p><b>CER:</b> Make a claim about funding schools with local overrides, with evidence from your table and reasoning that answers the strongest point of the other view. Your claim is your own; the math must be right.</p>'},
  terms:[
@@ -204,7 +228,7 @@ const SIM={
  '<p><b>Formula funding, FY2025-26:</b> funded pupils, total program and local share from the HB25-1320 fiscal note, Legislative Council Staff, May 3, 2025 (<a href="https://statebillinfo.com/bills/fiscal/25/2025a_hb1320_r4.pdf" target="_blank" rel="noopener">copy of the fiscal note</a>): Cherry Creek 50,360 pupils, $594,491,793, local $198,702,044; Aurora 39,522, $502,260,391, $180,825,830; Littleton 12,779, $144,610,359, $78,126,091. These are estimates; final amounts differ slightly. Per-student figures here divide these. Pairing December 2024 assessed values with FY2025-26 pupil counts is a simplification. Override dollars = override mills × net assessed value, before uncollected taxes.</p>'+
  '<p><b>Statewide:</b> FY2025-26 total program $9,998,057,000 for 841,832 pupils ($11,877 each); local share 46.3%, state share 53.7%; base per pupil $8,691.80; HB24-1448 phase-in 15% (FY2025-26) to 100% (FY2031-32); in FY2024-25, 113 districts raised nearly $1.7 billion from overrides and 132 raised about $1.4 billion from bonds (Legislative Council Staff, <a href="https://content.leg.colorado.gov/sites/default/files/School%20Finance%20Handbook%202026_0.pdf" target="_blank" rel="noopener">School Finance in Colorado</a>, 2026).</p>'+
  '<p><b>Senior exemption:</b> 50% of the first $200,000 of actual value; 304,141 homes in 2025; $172,985,247.41 reimbursed for tax year 2025 (DPT 2025 Annual Report). <b>Proposition HH (2023):</b> rejected by voters (<a href="https://www.cpr.org/2023/11/07/colorado-proposition-hh-election-results/" target="_blank" rel="noopener">CPR News</a>, Nov 7, 2023). <b>Other states:</b> Education Law Center, an advocacy organization, <a href="https://edlawcenter.org/wp-content/uploads/2025/12/Making-the-Grade-2025.pdf" target="_blank" rel="noopener">Making the Grade 2025</a> (2022-23 data).</p>'+
- '<p><b>Assumptions for illustration:</b> the $500,000 home, the 40 county, city and special district mills (real tax areas differ; read your own bill), and the share of tax passed on to rent. The tool does not rank schools or say anything about their quality.</p>'
+ ABOUT_MORE+'<p><b>Assumptions for illustration:</b> the $500,000 home, the 40 county, city and special district mills (real tax areas differ; read your own bill), and the share of tax passed on to rent. The tool does not rank schools or say anything about their quality.</p>'
 };
 BioLab.register(SIM);
 })();

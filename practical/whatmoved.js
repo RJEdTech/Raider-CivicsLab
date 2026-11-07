@@ -7,6 +7,6 @@ whatmoved:{
   'The Federal Reserve: it sets interest rates to steer unemployment and inflation, which is one reason a president cannot simply turn an economic number up or down.',
   'Your own feed: every chart that credits or blames a leader for a change is making a causal claim. Asking “what else changed then?” and “did the measure change?” is the habit this tool builds.'
  ],
- takeaway:'Who was in charge is the weakest explanation for a number like this. Test specific causes you can name and date, check what else changed at the same time, and make sure the measure stayed the same.'
+ takeaway:'From 2001 to 2019, r = 0.88 between unemployment and hunger in families with kids, so r² ≈ 0.77: jobs explain about 77% of the ups and downs. The 2020 to 2022 residuals line up with specific laws starting and ending. Who was in charge is not a variable this test can measure.'
 }
 });

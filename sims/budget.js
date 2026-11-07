@@ -39,7 +39,11 @@ const defc=sim=>outl(sim)-rcpt(sim);
 const anyChange=sim=>LINES.some(x=>chg(sim,x.c)!==0)||SRC.some(x=>chg(sim,x.c)!==0);
 const truth=q=>L(q).v/TOT*100;
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
-const shown=sim=>!!(sim.p.show||anyChange(sim)||(GS(sim)&&GS(sim).g));
+const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
+/* The real budget stays hidden while the student works out the share ("Your turn"). */
+const shown=sim=>!pend(sim)&&!!(sim.p.show||anyChange(sim)||(GS(sim)&&GS(sim).g));
+const revealed=sim=>!!(GS(sim)&&GS(sim).m);
+const share2=q=>Math.round(truth(q)*100)/100;
 const n1=v=>Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
 const B=v=>(v<0?'−':'')+'$'+n1(v)+'B';
 const B0=v=>(v<0?'−':'')+'$'+Math.round(Math.abs(v)).toLocaleString('en-US')+'B';
@@ -51,7 +55,7 @@ function clearGut(sim){if(sim.gutS&&(sim.gutS.g||sim.gutS.m)){sim.gutS.g=null;si
 function human(id,d){const a=Math.abs(d);
  if(id==='is')return `about ${big(a*SNAP_PY)} person-years of SNAP`;
  if(id==='df')return `about ${big(a*JET)} years of flying one Air Force F-35`;
- if(id==='ed')return `about ${big(a*PELL)} maximum Pell Grants (approximate)`;
+ if(id==='ed')return `about ${big(a*PELL)} maximum Pell Grants`;
  return `about ${big(a*LUNCH)} free school lunches, for scale`;}
 
 const ctl=(x,lvl,cap,step)=>({id:x.c,label:`${x.sl}: change, in billions of dollars`,type:'range',min:-Math.min(cap,Math.floor(x.v)),max:cap,step:step||5,def:0,unit:'',d:0,noGut:true,lvl,
@@ -72,7 +76,7 @@ function drawGuess(sim,ctx,k){const q=ASKQ[sim.p.gq],g=sim.p.guess,H=500;
  const ty=gy+10*cs+24*k;
  txt(ctx,`Your guess: ${per100(g)} of every $100`,400,ty,{s:14*k,w:700,c:PAL['s4'],a:'center'});
  txt(ctx,`for ${q.short}: ${B(g/100*TOT)} a year`,400,ty+20*k,{s:13*k,a:'center'});
- if(ty+42*k<H-4)txt(ctx,'Lock in your guess to see the real budget.',400,ty+42*k,{s:12*k,c:PAL['cv-soft'],a:'center'});}
+ if(ty+42*k<H-4)txt(ctx,pend(sim)?'Work out the real share to see the budget.':'Lock in your guess to see the real budget.',400,ty+42*k,{s:12*k,c:PAL['cv-soft'],a:'center'});}
 
 function lay(k){const y1=16,bh=26,y2=y1+bh+12,ly=y2+bh+34*k,top=Math.round(ly+14*k);return {y1,bh,y2,ly,top,rowH:(494-top)/6};}
 const rowRect=(sim,i)=>{const Q=lay(sim._k||1),col=i<6?0:1,row=i%6;return [12+col*390,Q.top+row*Q.rowH-4,386,Q.rowH];};
@@ -108,26 +112,21 @@ function draw(sim,ctx,vdt,k){const W=800,H=500;sim._k=k;ctx.fillStyle=PAL['cv-bg
    ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2.5;ctx.strokeRect(cx,by-1,Math.max(3,gw),20);
    if(want>lim){ctx.fillStyle=PAL['s4'];ctx.beginPath();ctx.moveTo(cx+gw+1,by-4);ctx.lineTo(cx+gw+9,by+9);ctx.lineTo(cx+gw+1,by+22);ctx.fill();}}
   else if(d){right=(d>0?'▲ ':'▼ ')+'$'+Math.abs(d)+'B';rc=d>0?PAL['s3']:PAL['s1'];}
-  if(right)txt(ctx,right,cx+cw,by+12,{s:12*k,w:700,c:rc,a:'right'});});}
+  if(right)txt(ctx,right,cx+cw,by+12,{s:12*k,w:700,c:rc,a:'right'});
+  /* at the reveal: the share formula under the line that was guessed */
+  if(gq===ln.id&&revealed(sim)&&by+20+12*k<y+rowH+2)txt(ctx,`${n1(ln.v)} ÷ ${n1(TOT)} × 100 = $${share2(ln.id).toFixed(2)} of every $100`,cx,by+18+12*k,{s:12*k,w:700,c:PAL['rj']});});}
 
-function asksHTML(sim){const d=id=>chg(sim,id);const dir=(v,what)=>v>0?`moves <b>${sB(v)}</b> toward ${what}`:v<0?`moves <b>${sB(v)}</b> away from ${what}`:`leaves ${what} unchanged`;
- const snap=d('dis'),med=d('dhl'),ed=d('ded'),ia=d('dia'),inc=d('dinc');
- const row=(t,touch,you)=>`<li><b>${t}</b><br><span class="help">Lines it touches: ${touch}</span><br>Your budget ${you}</li>`;
- let h=`<h3>What the bishops asked</h3><p>In 2025 the U.S. Catholic bishops (USCCB) asked lawmakers to do these things. The panel shows where your budget moves money. It does not score you: how to weigh these is a question of values.</p><ul>`;
- h+=row('Protect SNAP and Medicaid','Income security (SNAP) and Health (Medicaid).',`${dir(snap,'Income security')} and ${dir(med,'Health')}.`+(snap?` That ${snap>0?'adds':'removes'} ${human('is',snap)}, if it all went to SNAP.`:''));
- h+=row('A Child Tax Credit that reaches the poorest families','Income security (the refundable part of the credit is paid out as spending) and individual income tax.',`${dir(snap,'Income security')}${inc?`, and changes individual income tax revenue by ${sB(inc)}`:''}. A total cannot show who gets the credit: that is in how the law is written.`);
- h+=row('End taxpayer funding of major abortion providers','A rule about which providers programs pay, not a total.','is not shown by any slider: a budget could follow or ignore this ask at any Health total.');
- h+=row('Parental choice in education','Education, plus tax credits.',`${dir(ed,'Education')}. Most school funding comes from states and local districts, so federal totals show little of this.`);
- h+=row('Care for immigrants','Spread across several lines: aid to refugees abroad is in International affairs, and much of the rest sits in Everything else.',`${dir(ia,'International affairs')}. Whether a budget cares for immigrants depends mostly on how the money is used.`);
- h+='</ul><p class="help">These asks do not all sit on one side of today’s debates. Use them to name the values behind your choices.</p>';
+/* The working panel keeps only the math: each change converted to human units. The bishops' asks live in About. */
+function asksHTML(sim){let h='';
  const moved=LINES.filter(x=>chg(sim,x.c)).map(x=>`<li>${x.sl}: ${sB(chg(sim,x.c))}, ${human(x.id,chg(sim,x.c))}</li>`);
  h+=`<h3>Your changes in human terms</h3>${moved.length?`<ul>${moved.join('')}</ul>`:'<p>Move a slider to see what each change means.</p>'}`;
  return h;}
 
 const SIM={
- id:'budget',hash:'budget',apUnit:2,order:1,tab:'A budget is a moral document',kind:'Simulation',
+ id:'budget',hash:'budget',apUnit:2,order:1,tab:'Where $7.4 trillion goes',kind:'Simulation',
+ skills:{bio:'Percent of a whole: share = part ÷ total × 100 · Algebra 1 (Unit 2), AP Macroeconomics (Unit 5)',honors:'Percent of a whole and unit conversion · Algebra 1 (Unit 2), AP Macroeconomics (Unit 5)',ap:'Deficit = outlays − receipts, and an average rate (interest ÷ debt) · Algebra 1 (Unit 2), AP Macroeconomics (Unit 5)'},
  card:'Guess how much goes to foreign aid, then rebuild the real FY2026 federal budget and see what each change means in people, lunches and jets.',
- title:'A budget is a moral document',
+ title:'Where $7.4 trillion goes: the FY2026 federal budget',
  lede:{bio:'In FY2026 the federal government spent $7,395.8 billion and took in $5,403.3 billion. Where did it go? Move money between the lines and see what each choice means for real people.',
   honors:'Only about 27% of federal spending is discretionary, set in a yearly vote (FY2025, CBO). The rest is mandatory spending and interest: it changes only when the law changes or the debt does.',
   ap:'Deficit = outlays − receipts. Each year’s deficit adds to the debt held by the public ($32.43 trillion on Sep 30, 2026), and net interest ÷ debt gives an average rate of about 3.24%.'},
@@ -138,7 +137,7 @@ const SIM={
   {id:'gq',label:'The guess',type:'seg',def:'ia',noGut:true,onChange:clearGut,options:[{v:'ia',l:'Foreign aid'},{v:'int',l:'Interest on the debt'}],help:'Foreign aid here means international affairs: all foreign aid plus the State Department.'},
   {id:'guess',label:'Your guess: dollars out of every $100 of spending',type:'range',min:0,max:30,step:0.25,def:10,unit:'',d:2},
   {id:'show',label:'Show the real budget',type:'toggle',def:false,help:'Off: you guess first.'},
-  ctl(L('df'),'bio',300),ctl(L('is'),'bio',200),ctl(L('hl'),'bio',300),ctl(L('ed'),'bio',100,1),ctl(L('ia'),'bio',48,1),
+  ctl(L('df'),'bio',300),ctl(L('is'),'bio',200),ctl(L('ia'),'bio',48,1),ctl(L('hl'),'honors',300),ctl(L('ed'),'honors',100,1),
   rctl(SRC[0],'bio',400),
   ctl(L('ss'),'honors',300),ctl(L('mc'),'honors',300),ctl(L('va'),'honors',100),rctl(SRC[1],'honors',300),rctl(SRC[2],'honors',200),
   ctl(L('tr'),'ap',50,1),ctl(L('ag'),'ap',50,1),rctl(SRC[3],'ap',150)
@@ -166,7 +165,8 @@ const SIM={
   txt(ctx,'Blue: more spending. Red: less spending. Green: revenue change.',box.L,box.T+rh*items.length+22,{s:12,c:PAL['muted']});},
  draw,
  infoPanel:asksHTML,
- narrate(sim){if(!shown(sim))return `You are guessing how many dollars out of every $100 go to ${ASKQ[sim.p.gq].p}. <b>No math yet:</b> go with your gut.`;
+ narrate(sim){if(pend(sim))return `Your turn: <b>share = line ÷ total × 100</b>. Work out how many dollars of every $100 go to ${ASKQ[sim.p.gq].p}.`;
+  if(!shown(sim))return `You are guessing how many dollars out of every $100 go to ${ASKQ[sim.p.gq].p}. Go with your gut first; then you will work it out.`;
   const d=defc(sim),dc=d-(TOT-REV);
   if(!anyChange(sim))return `The government spent ${B(TOT)} and took in ${B(REV)}, so it <b>borrowed ${B(TOT-REV)}</b>. Social Security is the biggest line; net interest on the debt (${B(1051.8)}) is bigger than national defense (${B(965.2)}).`;
   if(Math.abs(dc)<0.05)return `Your moves add and cut the same amount, so <b>the deficit stays at ${B(d)}</b>. Moving money changes who gets helped, not how much is borrowed.`;
@@ -176,6 +176,16 @@ const SIM={
    honors:'Before you see the budget: how many dollars out of every $100 go to international affairs (all foreign aid plus the State Department)? Set <b>Your guess</b> by feel, then lock it in.'},
   lock(sim){const q=sim.p.gq,g=sim.p.guess;return {v:Math.abs(g-truth(q)),q,guess:g,label:`${per100(g)} of every $100 (${B(g/100*TOT)})`};},
   solve(sim){const q=sim.p.gq,t=truth(q);sim.p.guess=+t.toFixed(4);sim.p.show=true;return {v:0,q,guess:t,label:`${per100(t)} of every $100 (${B(L(q).v)})`};},
+  hint:{bio:'Lock in your guess. Then you will work out the real share yourself from two numbers.'},
+  calc:{unit:'$',d:2,tol:a=>Math.max(0.006,0.005*a),after:'lock',
+   prompt:{bio:sim=>{const q=sim.p.gq;return `${ASKQ[q].l} (${ASKQ[q].short}) was <b>${B(L(q).v)}</b>. All federal spending in FY2026 was <b>${B(TOT)}</b>. How many dollars of every $100 is that? Use share = line ÷ total × 100.`;},
+    honors:sim=>{const q=sim.p.gq;return `${ASKQ[q].l} was ${B(L(q).v)} out of ${B(TOT)} of FY2026 spending. How many dollars of every $100 is that, to the cent?`;}},
+   answer:sim=>share2(sim.p.gq),
+   hint:'Divide the line by the total first. That gives dollars per $1. Multiply by 100 for dollars per $100.',
+   steps(sim){const q=sim.p.gq,v=L(q).v,f=v/TOT;return [`Share = line ÷ total = ${n1(v)} ÷ ${n1(TOT)} = ${f.toFixed(5)}: that many dollars of every $1.`,
+    `Per $100: ${f.toFixed(5)} × 100 = <b>$${share2(q).toFixed(2)}</b>.`,
+    q==='ia'?`So 65 cents of every $100. At that share, an $800 monthly paycheck would put $${(8*share2(q)).toFixed(2)} on this line.`:`So about $14 of every $100: more than national defense ($${(965.2/TOT*100).toFixed(2)}).`];}},
+  formula(sim){const q=sim.p.gq,v=L(q).v;return `Share = ${n1(v)} ÷ ${n1(TOT)} × 100 = $${share2(q).toFixed(2)} of every $100`+(atLeast('ap')?`<br>Deficit = outlays − receipts = ${n1(TOT)} − ${n1(REV)} = ${n1(TOT-REV)} (billions)`:'');},
   how:{bio:'The math divides the line by the total: share = line ÷ total spending × 100. For international affairs that is $48.0B ÷ $7,395.8B × 100 ≈ 0.65, so about 65 cents of every $100.',
    ap:'Share = line ÷ outlays. International affairs: 48.0 ÷ 7,395.8 = 0.00649. Net interest: 1,051.8 ÷ 7,395.8 = 0.1422.'},
   compare(sim,g,m){const q=g.q,t=truth(q),off=Math.abs(g.guess-t)/100*TOT;
@@ -185,8 +195,8 @@ const SIM={
   again(sim){sim.p.gq=Math.random()<0.5?'ia':'int';sim.p.guess=10;sim.p.show=false;}
  },
  challenges:[
+  {lvl:'bio',kind:'num',q:'A different line: national defense was $965.2B out of $7,395.8B of FY2026 spending. How many dollars of every $100 went to defense?',answer:13.05,tol:0.03,unit:'$',d:2,hint:'Share = line ÷ total × 100.',explain:'965.2 ÷ 7,395.8 = 0.13051, and × 100 ≈ $13.05 of every $100. Compare international affairs at $0.65: defense is about 20 times bigger.'},
   {lvl:'bio',instant:true,q:'You cut all of international affairs: every dollar of foreign aid and the State Department ($48.0B). What happens to the $1,992.5B deficit?',choices:['It disappears','It falls by about half','It falls by about 2.4%, to $1,944.5B'],correct:2,explain:'$1,992.5B − $48.0B = $1,944.5B. International affairs is 65 cents of every $100 of spending, so cutting it cannot close a gap that big.'},
-  {lvl:'bio',instant:true,q:'Which cost more in FY2026: interest on the debt, or national defense?',choices:['National defense','Net interest on the debt','About the same'],correct:1,explain:'Net interest was $1,051.8B and national defense $965.2B: interest cost $86.6B more.'},
   {lvl:'bio',instant:true,q:'You move $10B from defense to income security. What happens to the deficit?',choices:['It grows by $10B','It shrinks by $10B','It does not change'],correct:2,explain:'Spending goes down $10B in one line and up $10B in another, so the total and the deficit stay the same. In human terms: about 1,515 F-35 jet-years become about 4.4 million person-years of SNAP.'},
   {lvl:'honors',instant:true,q:'Congress votes each year on only the discretionary part: about 27% of spending, or about $1,997B. To erase the $1,992.5B deficit by cutting only that part, how much of it would have to go?',choices:['About a quarter of it','About half of it','Nearly all of it'],correct:2,explain:'0.27 × $7,395.8B ≈ $1,996.9B, and $1,992.5B ÷ $1,996.9B ≈ 99.8%. That includes defense. Any real plan to close the gap has to touch mandatory programs, interest or taxes, and those need changes in law.'},
   {lvl:'honors',instant:true,q:'SNAP averages $189.36 per person per month. About how many person-years of SNAP does $10B pay for?',choices:['About 44,000','About 440,000','About 4.4 million','About 44 million'],correct:2,explain:'$189.36 × 12 = $2,272.32 per person-year. $10,000,000,000 ÷ $2,272.32 ≈ 4,400,000 person-years.'},
@@ -199,11 +209,11 @@ const SIM={
   {title:'The smallest lines',text:'International affairs, which holds all foreign aid plus the State Department, is $48.0B: 65 cents of every $100. Net interest on the debt is $1,051.8B, more than national defense.',pause:true,focus:sim=>[rowRect(sim,10),rowRect(sim,2)]},
   {title:'Dollars into people',text:'$1B pays for about 440,000 person-years of SNAP, about 210 million free school lunches, or about 150 years of flying one Air Force F-35. Use these to read every change you make.',pause:true},
   {title:'Move money',text:'Here $10B moved from defense to income security. The deficit does not move. About 1,515 F-35 jet-years became about 4.4 million person-years of SNAP.',pause:true,setup:sim=>BioLab.setValues(sim,{show:true,ddf:-10,dis:10})},
-  {title:'What the bishops asked',text:'Below the picture, the panel lists what the U.S. bishops asked of lawmakers in 2025 and shows where your budget moves money on each. It does not score you: weighing these asks is a question of values.',pause:true},
+  {title:'Values and lines',text:'In 2025 the U.S. Catholic bishops (USCCB) wrote to lawmakers about SNAP, Medicaid, the Child Tax Credit and other items. About lists each ask and the lines it touches. Question for discussion: which line would you move, and what value is behind that choice?',pause:true},
   {lvl:'honors',title:'What Congress votes on each year',text:'Only about 27% of spending is discretionary, set in yearly votes (FY2025, CBO). Social Security, Medicare and most of Medicaid and SNAP are mandatory: they change only when the law changes.',pause:true,setup:sim=>BioLab.setValues(sim,{show:true,ddf:0,dis:0})},
   {lvl:'ap',title:'Borrowing has a price',text:'Net interest ÷ debt held by the public = $1,051.8B ÷ $32.43T ≈ 3.24%. At that average rate, this year’s $1,992.5B of borrowing adds about $64.6B of interest every year after.',pause:true}
  ],
- lab:{bio:'<p><b>Question:</b> Can you close the deficit by cutting the lines people argue about most?</p><ol><li>Turn on <b>Show the real budget</b>.</li><li>Cut international affairs to $0 and record a trial.</li><li>Now cut defense by $300B too, and record again.</li><li>Read the bishops’ panel: which asks did your cuts move money away from?</li></ol><p>Write two sentences: how much of the deficit did you close, and what did it cost in human terms?</p>',
+ lab:{bio:'<p><b>Question:</b> Can you close the deficit by cutting the lines people argue about most?</p><ol><li>Turn on <b>Show the real budget</b>.</li><li>Cut international affairs to $0 and record a trial.</li><li>Now cut defense by $300B too, and record again.</li><li>Read the bishops’ asks in About: which lines did your cuts touch?</li></ol><p>Write two sentences: how much of the deficit did you close, and what did it cost in human terms?</p>',
   honors:'<p><b>Question:</b> What does a budget that protects SNAP and Medicaid have to give up, or raise?</p><ol><li>Raise income security and health by $50B each.</li><li>Pay for it two different ways: once with spending cuts, once with revenue. Record a trial for each.</li><li>For each, note which lines are mandatory and would need a change in law.</li></ol><p>Explain the trade-off you would choose and the value behind it. There is no single right answer.</p>',
   ap:'<p><b>Question:</b> How does this year’s deficit shape future budgets?</p><ol><li>Record the deficit, debt and added yearly interest for the actual budget.</li><li>Build a budget that cuts the deficit by $500B. Record the same three numbers.</li><li>Compute how many years of the added interest you avoided would pay for your largest single cut.</li></ol><p><b>CER:</b> Make a claim about one trade-off in your budget, with evidence from the readouts and reasoning that names the value you are weighing. Your claim is your own; the math must be right.</p>'},
  terms:[
@@ -216,7 +226,7 @@ const SIM={
   {t:'Debt held by the public',d:'What the government owes to outside lenders. Each deficit adds to it.',lvl:'ap'},
   {t:'Net interest',d:'Interest the government pays on its debt, minus interest it earns.',lvl:'ap'}
  ],
- about:'<p><b>This is a simplified model for learning.</b> Spending, revenue and the deficit are the actual FY2026 totals from the Treasury’s Monthly Treasury Statement, table 9, for the fiscal year ending Sep 30, 2026 (<a href="https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/mts/mts_table_9?filter=record_date:eq:2026-09-30" target="_blank" rel="noopener">Treasury Fiscal Data</a>), stored in this page, not fetched live. Outlays $7,395.8B; receipts $5,403.3B; deficit ≈ $1,992.5B. “Everything else” ($152.0B) and “Other receipts” ($248.9B) are the remainders so the lines add to the totals; they net many smaller items together. Debt held by the public on Sep 30, 2026: $32.43 trillion.</p><p><b>Human units.</b> SNAP: average benefit $189.36 per person per month (USDA, FY2025), so $1B ≈ 440,000 person-years. Free school lunch reimbursement: $4.76 (school year 2026-27), so $1B ≈ 210 million lunches. F-35: about $6.6M per Air Force jet per year to operate (GAO-24-106703), so $1B ≈ 150 jet-years. Pell Grant: the maximum award is used here as approximately $7,395, frozen in recent years; treat this figure as approximate and unverified. The human units are for scale: real programs have overhead and rules, and a line like Income security holds more than SNAP.</p><p><b>What the model leaves out.</b> Moving a slider changes one year only. In real life, cutting or raising a program changes the economy, tax revenue and future years. About 27% of spending is discretionary (CBO, FY2025); the mandatory/discretionary tags on each slider are approximate for lines that mix both. Added interest uses one average rate (net interest ÷ debt ≈ 3.24%); real rates vary by bond.</p><p><b>The bishops’ asks</b> summarize what the U.S. Conference of Catholic Bishops (USCCB) asked of lawmakers in 2025. The panel shows direction only. It never scores a budget: Catholic social teaching asks us to weigh the common good, and people of good will weigh these asks differently. Positions on them cut across today’s political lines.</p>'
+ about:'<p><b>This is a simplified model for learning.</b> Spending, revenue and the deficit are the actual FY2026 totals from the Treasury’s Monthly Treasury Statement, table 9, for the fiscal year ending Sep 30, 2026 (<a href="https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v1/accounting/mts/mts_table_9?filter=record_date:eq:2026-09-30" target="_blank" rel="noopener">Treasury Fiscal Data</a>), stored in this page, not fetched live. Outlays $7,395.8B; receipts $5,403.3B; deficit ≈ $1,992.5B. “Everything else” ($152.0B) and “Other receipts” ($248.9B) are the remainders so the lines add to the totals; they net many smaller items together. Debt held by the public on Sep 30, 2026: $32.43 trillion.</p><p><b>Human units.</b> SNAP: average benefit $189.36 per person per month (USDA, FY2025), so $1B ≈ 440,000 person-years. Free school lunch reimbursement: $4.76 (school year 2026-27), so $1B ≈ 210 million lunches. F-35: about $6.6M per Air Force jet per year to operate (GAO-24-106703), so $1B ≈ 150 jet-years. Pell Grant: the 2026-27 maximum award is $7,395 (Federal Student Aid, Dear Colleague Letter GEN-26-01, Jan 30, 2026, <a href="https://fsapartners.ed.gov/knowledge-center/library/dear-colleague-letters/2026-01-30/2026-27-federal-pell-grant-maximum-and-minimum-award-amounts" target="_blank" rel="noopener">FSA Partners</a>), so $1B ≈ 135,000 maximum awards. The human units are for scale: real programs have overhead and rules, and a line like Income security holds more than SNAP.</p><p><b>What the model leaves out.</b> Moving a slider changes one year only. In real life, cutting or raising a program changes the economy, tax revenue and future years. About 27% of spending is discretionary (CBO, FY2025); the mandatory/discretionary tags on each slider are approximate for lines that mix both. Added interest uses one average rate (net interest ÷ debt ≈ 3.24%); real rates vary by bond.</p><p><b>What the bishops asked (2025).</b> The U.S. Conference of Catholic Bishops (USCCB) asked lawmakers to: protect SNAP and Medicaid (Income security and Health lines); shape a Child Tax Credit that reaches the poorest families (Income security, since the refundable part is paid out as spending, and individual income tax); end taxpayer funding of major abortion providers (a rule about which providers programs pay, not a total, so no slider shows it); support parental choice in education (Education and tax credits; most school funding is state and local); and care for immigrants (spread across lines, including refugee aid in International affairs). A total shows direction only; how a law is written decides who is helped. People weigh these asks differently, and positions on them cut across today’s political lines. This tool does not score a budget. Question for discussion: which of these asks would change your budget, and how?</p><p><b>The section title.</b> “A budget is a moral document” is a phrase the USCCB and others have often used about federal budgets.</p>'+'<p><b>What this number hides.</b> A share of the total hides who receives the money and what it buys. One year hides the debt built up before it. A federal total also hides state and local spending, which pays for most schools.</p>'
 };
 BioLab.register(SIM);
 })();

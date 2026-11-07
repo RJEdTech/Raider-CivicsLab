@@ -37,11 +37,17 @@ const yearArrive=sim=>yearSent(sim)-yearFee(sim);
 const natFee=(sim,c)=>cty(sim).b*1e9*(c===undefined?costPct(sim):c)/100;
 const natSave=sim=>Math.max(0,natFee(sim)-natFee(sim,TARGET));
 const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
-const shown=sim=>!!(sim.p.show||(sim.tour&&sim.tour.on)||(sim.gutS&&sim.gutS.g));
+/* The cost stays hidden while the student works out the year's fees ("Your turn"). */
+const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
+const shown=sim=>!!(sim.p.show||(sim.tour&&sim.tour.on)||(sim.gutS&&sim.gutS.g&&!pend(sim)));
 const usd=(v,d)=>{d=d===undefined?2:d;return (v<0?'−':'')+'$'+Math.abs(v).toLocaleString('en-US',{minimumFractionDigits:d,maximumFractionDigits:d});};
 const big=v=>{const a=Math.abs(v);return a>=1e9?'$'+(a/1e9).toFixed(2)+'B':a>=1e6?'$'+(a/1e6).toFixed(1)+'M':usd(a,0);};
 const pc=v=>(+v).toFixed(2)+'%';
 const chLabel=sim=>sim.p.chan==='custom'?`your own provider (${pc(costPct(sim))})`:`${CH[sim.p.chan].l.toLowerCase()} (${pc(costPct(sim))})`;
+const c2=v=>Math.round(v*100)/100;
+const calcAns=sim=>c2(yearFee(sim));
+const costWords=sim=>{if(sim.p.chan!=='custom')return `<b>${pc(costPct(sim))}</b> of each transfer (${CH[sim.p.chan].l.toLowerCase()})`;
+ const mk=sim.p.dest==='own'?sim.p.markup:0;return `a flat fee of <b>${usd(sim.p.flat)}</b> per transfer`+(mk?` plus a <b>${pc(mk)}</b> exchange-rate markup`:' and no exchange-rate markup (the family uses U.S. dollars)');};
 function clearGut(sim){if(sim.gutS&&(sim.gutS.g||sim.gutS.m)){sim.gutS.g=null;sim.gutS.m=null;if(BioLab.gutRender)BioLab.gutRender(sim);}}
 const view=sim=>{const v=sim.p.view;if(v==='gdp'||v==='flows')return atLeast('ap')?v:'family';if(v==='nation')return atLeast('honors')?v:'family';return 'family';};
 function nice(v){const s=[100,200,250,500,600,800,1000,1500,2000,2500,5000];for(const x of s)if(v<=x)return x;return Math.ceil(v/1000)*1000;}
@@ -78,7 +84,9 @@ function drawFamily(sim,ctx,k){const W=800,S=sim.p.send,on=shown(sim),c=costPct(
  const eq=on?`${usd(yearSent(sim),0)} sent − ${usd(fee)} lost = ${usd(yearArrive(sim))} arrives`:`${usd(yearSent(sim),0)} sent − ? lost = ? arrives`;
  txt(ctx,eq,400,y,{s:14*k,w:700,a:'center'});
  const lines=[];
- if(!on)lines.push('Lock in your guess to see the real cost.');
+ if(!on)lines.push(pend(sim)?'Your turn: work out the year’s fees yourself.':'Lock in your guess to see the real cost.');
+ else if(G&&G.m&&sim.p.chan!=='custom')lines.push(`The math: 12 × ${usd(sim.p.send,0)} × ${pc(c)} = ${usd(fee)}`);
+ else if(G&&G.m)lines.push(`The math: 12 × ${usd(perMonth(sim))} per transfer = ${usd(fee)}`);
  else{const n=fee/sim.p.item;lines.push(k>1.3?`Fees = ${n.toFixed(1)} of your ${usd(sim.p.item,0)} items`:`The fees would buy ${n.toFixed(1)} of the ${usd(sim.p.item,0)} item you picked. ${sim.p.dest==='own'?'Part of the cost hides in the exchange rate.':'Ecuador uses U.S. dollars, so what arrives spends as dollars.'}`);
   if(atLeast('ap')){const m=sim.p.mpc;lines.push(k>1.3?`Re-spent at ${Math.round(m*100)}%: ${usd(yearArrive(sim)/(1-m),0)} (illustration)`:`If ${Math.round(m*100)}% of each dollar is re-spent locally: ${usd(yearArrive(sim)/(1-m),0)} of local spending (illustration)`);}}
  lines.forEach(s=>{y+=22*k;if(y<446)txt(ctx,s,400,y,{s:12*k,c:PAL['cv-soft'],a:'center'});});}
@@ -129,6 +137,7 @@ const sd=a=>{const m=a.reduce((x,y)=>x+y,0)/a.length;return Math.sqrt(a.reduce((
 
 const SIM={
  id:'remittances',hash:'remittances',apUnit:5,order:2,tab:'Sending money home',kind:'Simulation',
+ skills:{bio:'Percent of an amount and yearly totals · Algebra 1 (Unit 2), AP Macroeconomics (Unit 6)',honors:'Fixed vs. proportional costs: cost % = fee ÷ amount + markup · Algebra 1 (Units 2 and 3), AP Macroeconomics (Unit 6)',ap:'Shares of GDP, variability of flows, and a geometric-series multiplier · Algebra 2, AP Macroeconomics (Units 3 and 6)'},
  card:'Guess how much a year of $300 transfers loses to fees, then see what cheaper sending would mean for one family and a whole country.',
  title:'Sending money home',
  lede:{bio:'Millions of workers send part of every paycheck to family in another country. Fees and exchange-rate markups take a slice of every transfer. How big is that slice, and what does it cost a family over a year?',
@@ -179,6 +188,7 @@ const SIM={
   vals.forEach((v,i)=>{const x0=ax.X(i+0.2),x1=ax.X(i+0.8);ctx.fillStyle=ks[i]===sim.p.chan?PAL['rj']:PAL['s2'];ctx.fillRect(x0,ax.Y(v),x1-x0,ax.Y(0)-ax.Y(v));txt(ctx,usd(v,0),(x0+x1)/2,ax.Y(v)-6,{s:12,w:700,c:PAL['fg'],a:'center'});});},
  draw,
  narrate(sim){const v=view(sim);
+  if(!shown(sim)&&pend(sim))return `<b>Your turn:</b> ${usd(sim.p.send,0)} a month, 12 times a year, at ${pc(costPct(sim))} of each transfer. Work out the year’s fees.`;
   if(!shown(sim))return `You are guessing how much of ${usd(yearSent(sim),0)} a year (${usd(sim.p.send,0)} a month) is lost to fees. <b>No math yet:</b> go with your gut.`;
   if(v==='nation'){const C=cty(sim),sv=natSave(sim);return sv>0?`${C.id==='lmy'?'Low- and middle-income countries':C.l} received ${big(C.b*1e9)} in 2024. At ${pc(costPct(sim))}, sending it costs about ${big(natFee(sim))}. <b>At the 3% target, families would keep ${big(sv)} more a year.</b>`:`At ${pc(costPct(sim))}, this cost already meets the 3% target, so <b>nothing more would be saved</b> by reaching it.`;}
   if(v==='gdp'){const C=cty(sim);return C.g?`${C.l}: money sent home was ${C.g.toFixed(1)}% of GDP in 2024. <b>A big dollar total is not the same as a big share:</b> Mexico received the most dollars here, but they were only 3.7% of its economy.`:'Pick one country to compare its share of GDP.';}
@@ -186,10 +196,20 @@ const SIM={
   const c=costPct(sim);
   return `At ${pc(c)}, each ${usd(sim.p.send,0)} transfer loses ${usd(perMonth(sim))}. <b>Over a year that is ${usd(yearFee(sim))}</b>, about ${(yearFee(sim)/sim.p.send*100).toFixed(0)}% of one whole month’s transfer.${c>TARGET?` At the 3% target the family would keep ${usd(yearFee(sim)-yearSent(sim)*TARGET/100)} more.`:''}`;},
  gut:{better:'lower',controls:['guess'],
-  ask:{bio:'Your aunt works in the United States and sends money to her parents in Ecuador every month. The picture shows a year of her transfers. Drag <b>Your guess</b> to how many dollars you think fees take over the whole year, then lock it in.',
+  ask:{bio:'Ana works in Denver and sends money to her parents in Ecuador every month. The picture shows a year of her transfers. Drag <b>Your guess</b> to how many dollars you think fees take over the whole year, then lock it in.',
    honors:'Before you see any costs: how many dollars a year do fees take from the transfers in the picture? Set <b>Your guess</b> by feel, then lock it in.'},
   lock(sim){const T=yearFee(sim);return {v:Math.abs(sim.p.guess-T),guess:sim.p.guess,label:`${usd(sim.p.guess,0)} a year`};},
   solve(sim){const T=yearFee(sim);sim.p.guess=+T.toFixed(2);sim.p.show=true;return {v:0,guess:T,label:`${usd(T)} a year (${pc(costPct(sim))} of ${usd(yearSent(sim),0)})`};},
+  hint:{bio:'Lock in your gut answer. Then you will work out the real number yourself from the cost of each transfer.'},
+  calc:{unit:'$',d:2,tol:a=>Math.max(1,0.01*a),
+   prompt:sim=>`Ana sends <b>${usd(sim.p.send,0)}</b> a month, 12 times a year. Sending costs ${costWords(sim)}. How many dollars do fees take over the whole year?`,
+   answer:calcAns,
+   hint:'First find the year’s total: 12 × the monthly amount. Then take the cost percent of it: divide the percent by 100 and multiply.',
+   steps(sim){const S=sim.p.send,Y=yearSent(sim),F=calcAns(sim);
+    if(sim.p.chan==='custom'){const mk=sim.p.dest==='own'?sim.p.markup:0,pm=perMonth(sim);
+     return [`One transfer: ${usd(sim.p.flat)} fee`+(mk?` + ${pc(mk)} × ${usd(S,0)} = ${usd(sim.p.flat)} + ${usd(S*mk/100)}`:'')+` = ${usd(pm)}.`,`That is ${usd(pm)} ÷ ${usd(S,0)} = ${pc(costPct(sim))} of each transfer.`,`Twelve transfers: 12 × ${usd(pm)} = <b>${usd(F)}</b> a year.`];}
+    const c=costPct(sim);return [`The year’s total: 12 × ${usd(S,0)} = ${usd(Y,0)}.`,`The cost: ${pc(c)} = ${(c/100).toFixed(4)}, so ${(c/100).toFixed(4)} × ${usd(Y,0)} = <b>${usd(F)}</b> a year.`,`Check: one transfer loses ${usd(perMonth(sim))}, and 12 × ${usd(perMonth(sim))} = ${usd(12*perMonth(sim))}. ${usd(Y-F)} arrives.`];}},
+  formula(sim){const c=costPct(sim),F=calcAns(sim);return sim.p.chan==='custom'?`Yearly fees = 12 × (${usd(sim.p.flat)} + ${pc(sim.p.dest==='own'?sim.p.markup:0)} × ${usd(sim.p.send,0)}) = ${usd(F)}`:`Yearly fees = 12 × ${usd(sim.p.send,0)} × ${(c/100).toFixed(4)} = ${usd(F)}, so ${usd(yearArrive(sim))} arrives`;},
   how:{bio:'The math multiplies: 12 months × the amount sent = the year’s total. Then cost % × total = the year’s fees. For $300 a month at the 6.36% global average: 12 × $300 = $3,600, and 0.0636 × $3,600 = $228.96.',
    ap:'Yearly fees = 12 · S · c, where S is the monthly amount and c the total cost rate. For $300 at c = 0.0636: 12 × 300 × 0.0636 = $228.96.'},
   compare(sim,g,m){const T=m.guess,off=Math.abs(g.guess-T),c=costPct(sim),sv=Math.max(0,T-yearSent(sim)*TARGET/100),n=T/sim.p.item;
@@ -199,7 +219,7 @@ const SIM={
   again(sim){const S=[150,200,250,300,400,500];sim.p.send=S[Math.floor(Math.random()*S.length)];const C=['avg','bank','mto','dig'];sim.p.chan=C[Math.floor(Math.random()*C.length)];sim.p.guess=100;sim.p.show=false;}
  },
  challenges:[
-  {lvl:'bio',instant:true,q:'Your aunt sends $300 a month at the 6.36% global average cost. About how much does she lose to fees in a year?',choices:['About $19','About $229','About $636','About $3,600'],correct:1,explain:'12 × $300 = $3,600 a year. 6.36% of $3,600 = $228.96. The $19 is one month’s fee ($19.08); it adds up twelve times.'},
+  {lvl:'bio',kind:'num',q:'You send $50 a month from a summer-job paycheck to a friend on a service year abroad, through a bank at the 13.64% bank average. How many dollars do fees take in a year?',answer:81.84,tol:0.5,unit:'$',d:2,hint:'12 × $50 is the year’s total. Then multiply by 0.1364.',explain:'12 × $50 = $600 a year, and 0.1364 × $600 = $81.84. A digital service at 4.95% would take $29.70, so the bank costs $52.14 more.'},
   {lvl:'bio',instant:true,q:'Same $300 a month. How much more a year does a bank (13.64%) cost than a digital service (4.95%)?',choices:['About $31','About $313','About $491','No difference'],correct:1,explain:'The gap is 13.64% − 4.95% = 8.69 points. 0.0869 × $3,600 ≈ $312.84 a year. The bank alone would take $491.04; the digital service $178.20.'},
   {lvl:'bio',instant:true,q:'If the cost of every transfer fell from 6.36% to the UN target of 3%, how much more of a year of $300 transfers would reach the family?',choices:['About $3.36','About $108','About $121','About $229'],correct:2,explain:'At 6.36%: $228.96. At 3%: 0.03 × $3,600 = $108. The family keeps $228.96 − $108 = $120.96 more.'},
   {lvl:'honors',instant:true,q:'A provider charges a flat $5 per transfer. Is it cheaper to send $300 once, or $100 three times?',choices:['Once: $5, or 1.67%','Three times: the fee is spread out','The same: $15 either way'],correct:0,explain:'Once: $5 ÷ $300 = 1.67%. Three times: 3 × $5 = $15, which is 5% of $300. A flat fee is a bigger share of a small transfer.'},
@@ -210,7 +230,7 @@ const SIM={
   {lvl:'ap',instant:true,q:'A family receives $3,371.04 in a year. Suppose (for illustration) half of every dollar spent is re-spent locally, again and again. About how much local spending results in all?',choices:['$3,371','$5,057','$6,742','$33,710'],correct:2,explain:'Total = R × (1 + m + m² + …) = R ÷ (1 − m) = $3,371.04 ÷ 0.5 = $6,742.08. The re-spending share is an assumption; real values depend on imports, saving and taxes.'}
  ],
  tour:[
-  {title:'A year of transfers',text:'Each column is one month: $300 your aunt sends to her parents in Ecuador. Twelve columns make $3,600 a year.',pause:true,setup:sim=>BioLab.setValues(sim,{show:true,send:300,chan:'avg',view:'family',item:40}),focus:[14,40,500,280]},
+  {title:'A year of transfers',text:'Each column is one month: $300 Ana sends to her parents in Ecuador. Twelve columns make $3,600 a year.',pause:true,setup:sim=>BioLab.setValues(sim,{show:true,send:300,chan:'avg',view:'family',item:40}),focus:[14,40,500,280]},
   {title:'The red slice',text:'The red top of each column is the cost: the provider’s fee plus any exchange-rate markup. At the 6.36% global average, that is $19.08 of every $300.',pause:true,focus:[14,60,500,240]},
   {title:'Add it up',text:'Twelve slices: 0.0636 × $3,600 = $228.96 a year, and $3,371.04 arrives. That is about three-quarters of one whole month’s transfer, gone to fees.',pause:true,focus:[[520,20,270,290],[40,320,720,40]]},
   {title:'How you send matters',text:'Through a bank, at the 13.64% bank average, the year costs $491.04. A digital service at 4.95% costs $178.20. Same money sent, very different money received.',pause:true,setup:sim=>BioLab.setValues(sim,{chan:'bank'})},
@@ -241,7 +261,7 @@ const SIM={
  '<p><b>What the evidence says.</b> When the 1997 Asian financial crisis made the currencies of Filipino migrants’ host countries gain against the peso, remittances rose (elasticity 0.60), and households increased child schooling and education spending, reduced child labor and started more businesses (Yang, <i>Economic Journal</i> 118, 2008, <a href="https://econpapers.repec.org/RePEc:ecj:econjl:v:118:y:2008:i:528:p:591-630" target="_blank" rel="noopener">link</a>). In Philippine households with migrants, about 60% of income lost to rainfall shocks was replaced by remittances (Yang and Choi, <i>World Bank Economic Review</i> 21, 2007, <a href="https://econpapers.repec.org/RePEc:oup:wbecrv:v:21:y:2007:i:2:p:219-248" target="_blank" rel="noopener">link</a>).</p>'+
  '<p><b>The debates.</b> <i>Dependence and growth:</i> an IMF study found “a robust negative correlation between remittances and GDP growth,” and argued remittances are compensation for hard times, not investment capital (Chami, Fullenkamp and Jahjah, <i>IMF Staff Papers</i> 52, 2005, <a href="https://www.imf.org/External/Pubs/FT/staffp/2005/01/chami.htm" target="_blank" rel="noopener">link</a>). A correlation does not settle cause: money may flow toward countries because they are struggling, which is the insurance effect Yang and Choi measured. <i>Brain drain:</i> skilled workers leaving can cost a country their skills; Gibson and McKenzie review evidence that skilled migrants also remit, invest and share knowledge back home, and call the phrase “a loaded phrase implying serious loss” (<i>Journal of Economic Perspectives</i> 25, 2011, <a href="https://econpapers.repec.org/RePEc:aea:jecper:v:25:y:2011:i:3:p:107-28" target="_blank" rel="noopener">link</a>). This tool takes no position on migration policy: it is about families supporting families and the math of fees.</p>'+
  '<p><b>Assumptions.</b> The re-spending share and the multiplier R ÷ (1 − m) are an illustration, not a measured value: real effects depend on imports, saving and taxes. Ecuador has used the U.S. dollar as its official currency since 2000. The item price is your own number and stays in this page’s memory.</p>'+
- '<p><b>Catholic social teaching.</b> “The family is the original cell of social life” (<a href="https://www.vatican.va/archive/ENG0015/__P7T.HTM" target="_blank" rel="noopener">Catechism 2207</a>). Saint John Paul II called solidarity “a firm and persevering determination to commit oneself to the common good” (<a href="https://www.vatican.va/content/john-paul-ii/en/encyclicals/documents/hf_jp-ii_enc_30121987_sollicitudo-rei-socialis.html" target="_blank" rel="noopener"><i>Sollicitudo Rei Socialis</i> 38</a>).</p>'
+ '<p><b>What this number hides.</b> The 6.36% is one average across providers, corridors and amounts, measured on a $200 transfer. It hides corridors that cost far more than the average, small transfers where a flat fee is a bigger share, and markups that never show up as a fee. It counts fees and the exchange-rate margin only, not the time or travel it takes to send.</p><p><b>Catholic social teaching.</b> “The family is the original cell of social life” (<a href="https://www.vatican.va/archive/ENG0015/__P7T.HTM" target="_blank" rel="noopener">Catechism 2207</a>). Saint John Paul II called solidarity “a firm and persevering determination to commit oneself to the common good” (<a href="https://www.vatican.va/content/john-paul-ii/en/encyclicals/documents/hf_jp-ii_enc_30121987_sollicitudo-rei-socialis.html" target="_blank" rel="noopener"><i>Sollicitudo Rei Socialis</i> 38</a>).</p>'
 };
 BioLab.register(SIM);
 })();

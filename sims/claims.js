@@ -1,304 +1,192 @@
 (function(){
 'use strict';
-const {clamp,txt,pill,rr,PAL,FONT,atLeast,lvText}=BioLab.h;
-/* Four claim cards. Each card has its own guess slider and its own assumption controls; only the current card's
-   controls are shown. Every figure is a published estimate (see About); the tool computes per-person rates,
-   shares, ratios and the gap between the student's guess and the published number. */
-const ITEP={tot:96.7,fed:59.4,sl:37.3,ss:25.7,med:6.4,co:427,pop:10.9};
-const FAIR={gross:182,tax:31,net:150.7,pop:15.5};
-const NAS={avg:279,marg:43};
-const AID={ia:48.0,out:7395.8};
-const FOOD={pct:29,tons:70};
-const CTC={y21:5.2,y22:12.4,y23:13.7,lo:410000,hi:1500000};
-const aidPct=()=>100*AID.ia/AID.out;
-const ppItep=()=>ITEP.tot*1e9/(ITEP.pop*1e6), ppFair=()=>FAIR.tax*1e9/(FAIR.pop*1e6);
-const CARDS=['tax','aid','food','ctc'];
-const GID={tax:'g_tax',aid:'g_aid',food:'g_food',ctc:'g_ctc'};
-const OWN={tax:['g_tax','pop','kids','pg'],aid:['g_aid','bill'],food:['g_food','era','counts'],ctc:['g_ctc','evid']};
-const TILES={tax:['pp_itep','pp_fair','atpop'],aid:['aidpct','aidbill'],food:['surplus'],ctc:['jump','perk','simgap']};
-const CLAIM={tax:'“Undocumented immigrants pay no taxes.”',aid:'“Foreign aid is a big part of the federal budget.”',food:'“The government destroys food to keep prices up.”',ctc:'“The expanded Child Tax Credit cut child poverty.” “It cost too much and discouraged work.”'};
+const {clamp,txt,pill,rr,PAL,FONT,atLeast}=BioLab.h;
+/* Two claims heard from different directions in the immigration debate, checked with one method:
+   divide a published total by the number of people it covers (rate = total ÷ people), and compare rates, not totals.
+   Every total is a published estimate (see About). The tool computes the per-person rates, ratios and shares. */
+const ITEP={tax:96.7,pop:10.9,fed:59.4,sl:37.3,ss:25.7,med:6.4,co:427};   /* $B, million people; co in $M */
+const FAIR={cost:182,tax:31,net:150.7,pop:15.5};                          /* $B, million people */
+const NAS={avg:279,marg:43};                                              /* $B, 2013, all first-generation immigrants */
+const CBO={rev:1.2,def:0.9,yrs:11};                                       /* $T over fiscal years 2024 to 2034 */
+const rate=(tot,pop)=>tot*1e9/(pop*1e6);
+const ppI=()=>rate(ITEP.tax,ITEP.pop),ppF=()=>rate(FAIR.tax,FAIR.pop),cpF=()=>rate(FAIR.cost,FAIR.pop);
+const CLAIM={none:'“Undocumented immigrants pay no taxes.”',more:'“Undocumented immigrants pay more in taxes than they cost.”'};
+const MAXV=15000;
 let REF=null;
-const cur=sim=>sim.p.card;
-const f0=v=>Math.round(v).toLocaleString('en-US'),f1=v=>(+v).toFixed(1),f2=v=>(+v).toFixed(2);
-const money=v=>'$'+f0(v);
-const GS=sim=>sim.gutS;
-function shown(sim){const c=cur(sim);if(sim.tour&&sim.tour.on)return true;if(sim.st&&sim.st.rev&&sim.st.rev[c])return true;const S=GS(sim);return !!(S&&S.g&&S.g.card===c);}
-function guessOf(sim){const c=cur(sim),S=GS(sim);return (S&&S.g&&S.g.card===c)?S.g.val:sim.p[GID[c]];}
-/* The published answer each guess is scored against. For taxes, two sources disagree, so any guess inside their range scores 0. */
-function truthGap(c,g){if(c==='tax'){const lo=FAIR.tax,hi=ITEP.tot;return g<lo?lo-g:g>hi?g-hi:0;}
- if(c==='aid')return Math.abs(g-aidPct());if(c==='food')return Math.abs(g-FOOD.pct);return Math.abs(g-CTC.y22);}
-function unitTxt(c,v){if(c==='tax')return '$'+f1(v)+'B';if(c==='aid')return '$'+f2(v)+' of every $100';if(c==='food')return f0(v)+'%';return f1(v)+'%';}
-
-/* show only the current card's controls and tiles */
-function syncVis(sim){const ui=sim.ui;if(!ui||!ui.ctlW)return;const c=cur(sim);
- (sim.def.controls||[]).forEach(ct=>{const own=Object.keys(OWN).find(k=>OWN[k].includes(ct.id));if(!own)return;const w=ui.ctlW[ct.id];if(!w)return;
-  w.hidden=w._home?false:(own!==c||!atLeast(ct.lvl||'bio'));});
- Object.keys(TILES).forEach(k=>TILES[k].forEach(id=>{const t=ui.tiles&&ui.tiles[id];if(!t)return;const tile=t.num.closest('.tile');const m=sim.def.metrics.find(x=>x.id===id);if(tile)tile.hidden=k!==c||!atLeast(m.lvl||'bio');}));}
-/* In the Guided gut step, swap which guess slider sits beside the prompt when the student picks another claim. */
-function reparkGuided(sim){const dc=sim.ui&&sim.ui.donecard,box=dc&&dc.querySelector('.gs-ctl');if(!box)return;const want=GID[cur(sim)];
- Object.values(GID).forEach(id=>{const w=sim.ui.ctlW[id];if(w&&w._home&&id!==want){w._home.parentNode.insertBefore(w,w._home);w._home.remove();w._home=null;}});
- const w=sim.ui.ctlW[want];if(w&&!w._home&&w.parentNode){const ph=document.createComment('ctl '+want);w.parentNode.insertBefore(ph,w);w._home=ph;box.appendChild(w);}
- const x=dc.querySelector('.dc-x');if(x)x.innerHTML=lvText(ASK[cur(sim)]);}
-function onCard(sim){const S=GS(sim),keep=sim.guide&&sim.guide.keep;
- if(S&&!keep&&(S.g||S.m)){S.g=null;S.m=null;}
- if(sim.mode==='guided'){if(sim.guide&&sim.guide.phase==='gut')reparkGuided(sim);}
- else if(BioLab.gutRender&&sim.ui&&sim.ui.gut)BioLab.gutRender(sim);
- syncVis(sim);sim.infoDirty=true;}
-function clearGut(sim){const S=GS(sim);if(S&&!(sim.guide&&sim.guide.keep)&&(S.g||S.m)){S.g=null;S.m=null;if(BioLab.gutRender)BioLab.gutRender(sim);}}
-
-const ASK={
- tax:'Start with the first claim. How many <b>billions of dollars</b> in taxes do you think undocumented immigrants paid in 2022? The slider starts at the claim: $0. Drag it to your guess, then lock it in.',
- aid:'Out of every <b>$100</b> the federal government spends, how many dollars do you think go to foreign aid and everything else in international affairs? Drag the slider here to your guess, then lock it in.',
- food:'Out of all the food the U.S. produces in a year, what <b>percent</b> do you think ends up unsold or uneaten? Drag the slider here to your guess, then lock it in.',
- ctc:'In 2021, while the expanded Child Tax Credit was paid, 5.2% of U.S. children were in poverty. The expansion ended after 2021. What do you think the rate was in <b>2022</b>? Drag the slider, then lock it in.'};
-const HOW={
- tax:'Two groups on opposite sides of the immigration debate both estimated it. ITEP, which leans left, found $96.7B in federal, state and local taxes for 2022. FAIR, which advocates lower immigration, found $31B. Any guess between them counts as on target.',
- aid:'Divide one budget line by the total: $48.0B for international affairs ÷ $7,395.8B in federal outlays for fiscal year 2026 = 0.65%, or 65 cents of every $100.',
- food:'ReFED, a food-waste research group, adds up surplus food at every stage from farm to fork: 70 million tons in 2024, 29% of the U.S. food supply.',
- ctc:'The Census Bureau’s Supplemental Poverty Measure counts tax credits as income. It showed child poverty at 5.2% in 2021 and 12.4% in 2022, after the expansion expired.'};
-
-function verdict(sim){const c=cur(sim),p=sim.p;if(!shown(sim))return 'Lock in your guess first. Then the verdict appears.';
- if(c==='tax')return `False as stated: estimates from both sides find tens of billions of dollars a year ($31B to $96.7B). Whether they cost governments more than they pay is a separate question, and the answer depends on what you count.`;
- if(c==='aid')return `False: international affairs, which includes all foreign aid plus diplomacy, was ${f2(aidPct())}% of federal outlays in FY2026, about 65 cents of every $100.`;
- if(c==='food'){if(p.era==='1933')return 'True in 1933: under the Agricultural Adjustment Act, about 6 million young pigs were slaughtered and about 10 million acres of cotton plowed under to raise farm prices.';
-  return p.counts==='destroy'?'Mostly false today. No program here destroys food to raise prices. The milk dumped in spring 2020 was a supply-chain breakdown, and Section 32 buys surplus food and gives it away.':'Partly true today, if you count price supports: the sugar program keeps U.S. sugar near twice the world price, but it does not destroy food.';}
- return `“Cut child poverty”: child poverty more than doubled, ${f1(CTC.y21)}% to ${f1(CTC.y22)}%, when the expansion ended, which fits the claim. “Discouraged work”: ${p.evid==='sims'?'simulations predict about 410,000 to 1.5 million parents leaving work':'some studies of actual 2021 jobs found no significant drop'}. “Cost too much” is a value judgment.`;}
-function depends(sim){const c=cur(sim),p=sim.p;
- if(c==='tax'){let s=`Taxes paid depend on the method more than the headcount. Net cost depends on what you count: `;
-  s+=p.kids?'you are counting U.S.-born children’s school costs, as FAIR and the National Academies do. ':'you left out U.S.-born children’s school costs. Every cost estimate here includes them, so the net cost would be lower, but no source here publishes that number. ';
-  if(atLeast('honors'))s+=p.pg==='avg'?'Charging an average share of defense and other public goods gives the National Academies’ high end, about $279B for all first-generation immigrants in 2013. ':'Counting only the added cost of public goods gives the National Academies’ low end, about $43B for all first-generation immigrants in 2013. ';
-  return s+'Federal and state budgets also differ: CBO finds the 2021–2026 surge lowers federal deficits while raising state and local costs.';}
- if(c==='aid')return 'It depends on the denominator. As a share of the whole budget it is under 1%. As dollars, $48.0B is a lot of money. Both are true; whether it is too much or too little is a value question.';
- if(c==='food')return p.counts==='destroy'?'It depends on what “destroy” means and when. Destroying food on purpose to raise prices happened in 1933. Today most lost food is ordinary waste: 29% of the supply, with homes the biggest single source.':'If “keep prices up” counts, the sugar program fits: GAO estimates it costs U.S. consumers $2.5B to $3.5B a year. It still destroys no food.';
- return p.evid==='sims'?'The work effect depends on assumptions about how parents respond. Two simulations differ by more than 3 times: about 410,000 (Niskanen Center) against about 1.5 million (Corinth, Meyer, Stadnicki and Wu, NBER).':'Studies of what actually happened in 2021 found no significant drop in parents’ work. The 2021 expansion was temporary, so critics argue a permanent credit could still change behavior.';}
-function faith(sim){const c=cur(sim);
- if(c==='tax')return 'In a Special Message (Nov 12, 2025) the U.S. bishops affirm that nations may regulate their borders and oppose “indiscriminate mass deportation.” That is a moral claim about how to treat people. These tax numbers do not prove or disprove it, and the bishops’ case does not rest on them.';
- if(c==='ctc')return 'The U.S. bishops (USCCB) asked for a Child Tax Credit that reaches the poorest families. Math can test whether a design does that: the 2021 credit was fully refundable, so families who owed little or no income tax got it. Whether that is worth the cost is a value question.';
- if(c==='aid')return 'Catholic social teaching asks how a budget treats the poor, here and abroad. The share is a fact you can check. How much a nation should give is a value question this tool leaves to you.';
- return 'Pope Francis’s Laudato Si’ (2015) warns against a “throwaway culture.” The math shows most lost food today is waste, not policy. See Food math in this lab.';}
+/* the case the student computes: taxes per person from the chosen estimate, or FAIR's costs per person */
+function cs(sim){const p=sim.p;if(p.claim==='more')return {id:'fair_c',who:'FAIR',what:'costs',tot:FAIR.cost,pop:FAIR.pop,v:cpF()};
+ return p.src==='itep'?{id:'itep_t',who:'ITEP',what:'taxes',tot:ITEP.tax,pop:ITEP.pop,v:ppI()}:{id:'fair_t',who:'FAIR',what:'taxes',tot:FAIR.tax,pop:FAIR.pop,v:ppF()};}
+const taxPP=sim=>sim.p.src==='itep'?ppI():ppF(),taxWho=sim=>sim.p.src==='itep'?'ITEP':'FAIR';
+const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
+function shown(sim){if(sim.tour&&sim.tour.on)return true;if(sim.p.reveal)return true;const S=sim.gutS;return !!(S&&S.g&&!pend(sim));}
+/* The first Big-picture challenge asks for FAIR's costs per person. Until it is answered, that one rate stays hidden,
+   unless the student already worked it out as their own "Your turn" case, or asked to see the rates. */
+const curCh=sim=>{if(!sim.ch)return null;const L=(sim.def.challenges||[]).filter(c=>atLeast(c.lvl||'bio'));return L[sim.ch.idx]||null;};
+function hideCost(sim){if((sim.tour&&sim.tour.on)||sim.p.reveal)return false;const c=curCh(sim);if(!(c&&c.hide&&sim.ch.phase!=='done'))return false;const S=sim.gutS;return !(S&&S.g&&S.g.claim==='more'&&!pend(sim));}
+const costOK=sim=>shown(sim)&&!hideCost(sim);
+const GS=sim=>(sim.tour&&sim.tour.on)?null:sim.gutS;
+const f0=v=>Math.round(v).toLocaleString('en-US'),f1=v=>(+v).toFixed(1);
+const $=v=>'$'+f0(v);
+const bil=v=>'$'+(Math.abs(v-Math.round(v))<1e-9?String(Math.round(v)):f1(v))+'B';
+const mil=v=>(Math.abs(v-Math.round(v))<1e-9?String(Math.round(v)):f1(v))+' million';
+function clearGut(sim){const S=sim.gutS;if(S&&!(sim.guide&&sim.guide.keep)&&(S.g||S.m)){S.g=null;S.m=null;if(sim.ui)sim.ui.calc=null;if(BioLab.gutRender)BioLab.gutRender(sim);}sim.infoDirty=true;}
+const divLine=c=>`${bil(c.tot)} ÷ ${mil(c.pop)} people = ${$(c.v)} a year`;
 
 const SIM={
- id:'claims',hash:'claims',apUnit:3,order:1,tab:'Does the math hold up?',kind:'Learning tool',next:['whatmoved','foodmath'],
- card:'Guess the number behind four common claims, then see what the published estimates say and which assumptions change the answer.',
+ id:'claims',hash:'claims',apUnit:3,order:1,tab:'Does the math hold up?',kind:'Learning tool',next:['budget','whatmoved'],
+ skills:{bio:'Per-person rates: total ÷ people, with the right denominator · Algebra 1 (Unit 2: proportions), US Government (Unit 3: media and sourcing)',
+  honors:'Rates and rate × people: is a gap the headcount or the method? · Algebra 1 (Unit 2), US Government (Unit 3)',
+  ap:'Rates, ratios and shares from published estimates · Algebra 1 (Unit 2), Statistics (Chapter 1), AP Macroeconomics (Unit 5)'},
+ card:'Two claims heard from different sides of the immigration debate, one method: divide each published total by the people it covers, then check the claim.',
  title:'Does the math hold up?',
- lede:{bio:'You hear claims like these in your feed, in class debates and at the dinner table. Each one sounds like a number. Guess the number, then check it against the best published estimates.',
-  honors:'Most fights over a number are fights over what to count. Change the assumptions on each card and watch which estimate your choices match.',
-  ap:'Separate the factual claim (a number you can check) from the value claim (what we should do about it). Compare per-person rates, shares and ranges across sources that disagree.'},
- scale:'One claim at a time. Dollar figures are for one year unless a card says otherwise. B = billion, T = trillion.',
+ lede:{bio:'A total in billions sounds huge or tiny until you divide it by the people it covers. Work out the per-person rate from published totals, then check the claim against it.',
+  honors:'Two estimates can disagree because they count different numbers of people or because they use different methods. Per-person rates tell the two apart: the same rate times more people gives a bigger total.',
+  ap:'Rate = total ÷ people, and total = rate × people. Use both to test whether a headcount or a method explains a gap, and check that the top and bottom of each fraction count the same people.'},
+ scale:'Dollars per person for one year. ITEP: 2022 taxes. FAIR: 2023 report. B = billion.',
  aspect:16/9,timeless:true,trials:false,graph:false,
  controlsTitle:'The claim',
  controls:[
-  {id:'card',label:'Pick a claim',type:'seg',def:'tax',noGut:true,onChange:onCard,options:[{v:'tax',l:'No taxes?'},{v:'aid',l:'Foreign aid'},{v:'food',l:'Food destroyed?'},{v:'ctc',l:'Child Tax Credit'}]},
-  {id:'g_tax',label:'Your guess: taxes they paid in 2022 (dollars)',type:'range',min:0,max:150,step:1,def:0,unit:' billion'},
-  {id:'g_aid',label:'Your guess: dollars of every $100 of federal spending',type:'range',min:0,max:30,step:0.1,def:10,unit:' dollars'},
-  {id:'g_food',label:'Your guess: percent of U.S. food unsold or uneaten',type:'range',min:0,max:60,step:1,def:10,unit:'%'},
-  {id:'g_ctc',label:'Your guess: child poverty in 2022',type:'range',min:0,max:25,step:0.1,def:5.2,unit:'%'},
-  {id:'pop',label:'How many undocumented immigrants? (estimate)',type:'range',min:10,max:16,step:0.1,def:10.9,unit:' million',noGut:true,onChange:clearGut,help:'ITEP uses 10.9 million. FAIR uses 15.5 million.'},
-  {id:'kids',label:'Count U.S.-born children’s school costs',type:'toggle',def:true,noGut:true,help:'The children are citizens. Some studies count their school costs as a cost of their parents.'},
-  {id:'pg',label:'Charge a share of public goods like defense',type:'seg',def:'avg',lvl:'honors',noGut:true,options:[{v:'avg',l:'Average share per person'},{v:'marg',l:'Only the added (marginal) cost'}],help:'An extra resident barely changes the cost of the Navy. Average-cost accounting charges everyone an equal share anyway.'},
-  {id:'bill',label:'Your family’s federal tax bill (for illustration)',type:'range',min:1000,max:30000,step:500,def:5000,unit:' dollars',noGut:true,help:'Stays in your browser. Nothing is saved or sent.'},
-  {id:'era',label:'When?',type:'seg',def:'today',noGut:true,options:[{v:'today',l:'Today'},{v:'1933',l:'1933'}]},
-  {id:'counts',label:'What counts as the claim?',type:'seg',def:'destroy',noGut:true,options:[{v:'destroy',l:'Destroying food on purpose'},{v:'prices',l:'Any policy that keeps food prices up'}]},
-  {id:'evid',label:'Evidence on work',type:'seg',def:'sims',noGut:true,options:[{v:'sims',l:'Simulations'},{v:'actual',l:'Studies of actual 2021 jobs'}]}
+  {id:'guess',label:'Your gut: dollars per person, per year',type:'range',min:0,max:MAXV,step:100,def:0,unit:' dollars'},
+  {id:'claim',label:'Claim to check',type:'seg',def:'none',noGut:true,onChange:clearGut,options:[{v:'none',l:'“No taxes”'},{v:'more',l:'“More than they cost”'}]},
+  {id:'src',label:'Tax estimate to use',type:'seg',def:'fair',noGut:true,onChange:clearGut,options:[{v:'fair',l:'FAIR: $31B, 15.5M people'},{v:'itep',l:'ITEP: $96.7B, 10.9M people'}],help:'FAIR advocates lower immigration. ITEP is a tax research group that leans left. Each publishes a total and a headcount.'},
+  {id:'pop',label:'Headcount to apply ITEP’s rate to',type:'range',min:10,max:16,step:0.1,def:15.5,unit:' million',d:1,lvl:'honors',noGut:true,help:'ITEP counts 10.9 million people. FAIR counts 15.5 million.'},
+  {id:'reveal',label:'Show the per-person rates now',type:'toggle',def:false,noGut:true,help:'Normally the rates appear once you lock in your gut and work it out.'}
  ],
- actions:[
-  {id:'show',label:'Show the numbers',run(sim){sim.st.rev[cur(sim)]=true;sim.infoDirty=true;}},
-  {id:'next',label:'Next claim',run(sim){const i=CARDS.indexOf(cur(sim));BioLab.setValues(sim,{card:CARDS[(i+1)%4]});}}
- ],
- init(sim){REF=sim;return {rev:{}};},step(){},
- onLevel(sim){syncVis(sim);},
- onChallenge(sim,ch,phase){if(phase==='done'&&ch.card){if(cur(sim)!==ch.card)BioLab.setValues(sim,{card:ch.card});sim.st.rev[ch.card]=true;sim.infoDirty=true;}},
+ actions:[{id:'swap',label:'Check the other claim',run(sim){BioLab.setValues(sim,{claim:sim.p.claim==='none'?'more':'none'});}}],
+ init(sim){REF=sim;return {};},step(){},
+ onChallenge(sim,ch,phase){if(ch&&phase==='ask'&&ch.card&&sim.p.claim!==ch.card)BioLab.setValues(sim,{claim:ch.card});sim.infoDirty=true;},
  metrics:[
-  {id:'verdict',label:'Verdict',text:true,get:verdict},
-  {id:'depends',label:'What the answer depends on',text:true,get:depends},
-  {id:'faith',label:'Faith and scrutiny',text:true,get:faith},
-  {id:'pp_itep',label:'ITEP: taxes per person',unit:'$ a year',d:0,min:0,max:10000,lvl:'honors',get:sim=>cur(sim)==='tax'&&shown(sim)?ppItep():null},
-  {id:'pp_fair',label:'FAIR: taxes per person',unit:'$ a year',d:0,min:0,max:10000,lvl:'honors',get:sim=>cur(sim)==='tax'&&shown(sim)?ppFair():null},
-  {id:'atpop',label:'ITEP’s per-person rate × your population',unit:'$B',d:1,min:0,max:150,lvl:'ap',get:sim=>cur(sim)==='tax'&&shown(sim)?ppItep()*sim.p.pop*1e6/1e9:null},
-  {id:'aidpct',label:'International affairs share of federal outlays',unit:'%',d:2,min:0,max:5,get:sim=>cur(sim)==='aid'&&shown(sim)?aidPct():null},
-  {id:'aidbill',label:'Your family’s tax bill × that share',unit:'$',d:0,min:0,max:200,get:sim=>cur(sim)==='aid'&&shown(sim)?sim.p.bill*aidPct()/100:null},
-  {id:'surplus',label:'U.S. food supply unsold or uneaten (2024)',unit:'%',d:0,min:0,max:60,get:sim=>cur(sim)==='food'&&shown(sim)?FOOD.pct:null},
-  {id:'jump',label:'Rise in child poverty, 2021 to 2022',unit:'points',d:1,min:0,max:10,get:sim=>cur(sim)==='ctc'&&shown(sim)?CTC.y22-CTC.y21:null},
-  {id:'perk',label:'More children in poverty per 1,000',unit:'children',d:0,min:0,max:100,lvl:'honors',get:sim=>cur(sim)==='ctc'&&shown(sim)?Math.round(10*(CTC.y22-CTC.y21)):null},
-  {id:'simgap',label:'High simulation ÷ low simulation',unit:'×',d:1,min:0,max:5,lvl:'ap',get:sim=>cur(sim)==='ctc'&&shown(sim)?CTC.hi/CTC.lo:null}
+  {id:'ppF',label:'FAIR: taxes per person',unit:'$ a year',d:0,min:0,max:MAXV,get:sim=>shown(sim)?ppF():null},
+  {id:'ppI',label:'ITEP: taxes per person',unit:'$ a year',d:0,min:0,max:MAXV,get:sim=>shown(sim)?ppI():null},
+  {id:'cpF',label:'FAIR: costs per person',unit:'$ a year',d:0,min:0,max:MAXV,get:sim=>costOK(sim)?cpF():null},
+  {id:'off',label:'Your gut is off by',unit:'$ a year',d:0,min:0,max:MAXV,get:sim=>{if(!shown(sim)||!costOK(sim)&&sim.p.claim==='more')return null;const S=sim.gutS;if(S&&S.g&&S.g.claim!==sim.p.claim)return null;const g=S&&S.g?S.g.guess:sim.p.guess;return Math.abs(g-cs(sim).v);}},
+  {id:'atpop',label:'ITEP’s rate × your headcount',unit:'$B',d:1,lvl:'honors',min:0,max:150,get:sim=>shown(sim)?ppI()*sim.p.pop*1e6/1e9:null},
+  {id:'ratio',label:'ITEP’s rate ÷ FAIR’s rate',unit:'×',d:1,lvl:'ap',min:0,max:10,get:sim=>shown(sim)?ppI()/ppF():null},
+  {id:'ssm',label:'Share of ITEP’s total to Social Security and Medicare',unit:'%',d:1,lvl:'ap',min:0,max:100,get:sim=>shown(sim)?100*(ITEP.ss+ITEP.med)/ITEP.tax:null}
  ],
- draw(sim,ctx,vdt,k){const c=cur(sim),sh=shown(sim),W=800;
-  ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,W,450);
-  /* header: who says it, then the claim */
-  ctx.font='700 '+(12*k)+'px '+FONT;const pw=ctx.measureText('A common claim').width+13*k;pill(ctx,'A common claim',20+pw/2,12+10*k,PAL['s2'],'#fff',12*k);
-  const hs=Math.max(16,13*k);const hh=wrap(ctx,CLAIM[c],20,30+22*k,760,{s:hs,w:700,max:2});
-  const top=30+22*k+hh-8+6*k;
-  if(c==='tax')drawTax(sim,ctx,k,top,sh);else if(c==='aid')drawAid(sim,ctx,k,top,sh);else if(c==='food')drawFood(sim,ctx,k,top,sh);else drawCtc(sim,ctx,k,top,sh);},
- narrate(sim){const c=cur(sim),g=guessOf(sim),p=sim.p;
-  if(!shown(sim)){if(c==='tax')return `Your guess right now: <b>$${f0(g)}B</b>. The claim says $0. Lock in your guess, or press Show the numbers, to see what two groups on opposite sides estimated.`;
-   if(c==='aid')return `Your guess right now: <b>$${f1(g)} of every $100</b> of federal spending. Lock it in to see the real share.`;
-   if(c==='food')return `Your guess right now: <b>${f0(g)}%</b> of U.S. food goes unsold or uneaten. Lock it in, then check who or what is doing the wasting.`;
-   return `Your guess right now: child poverty at <b>${f1(g)}%</b> in 2022, against 5.2% in 2021. Lock it in to see the measured rate.`;}
-  if(c==='tax'){const at=ppItep()*p.pop/1e3;return `Both estimates are far above $0, so <b>“no taxes” is false.</b> ${Math.abs(p.pop-ITEP.pop)>0.05?`With ${f1(p.pop)} million people at ITEP’s rate of about ${money(ppItep())} each, the total would be $${f1(at)}B. `:''}The real argument is about the net, and that depends on what you count.`;}
-  if(c==='aid')return `International affairs is <b>${f2(aidPct())}%</b> of federal outlays. On a ${money(p.bill)} federal tax bill, that share is about <b>${money(p.bill*aidPct()/100)}</b>.`;
-  if(c==='food')return p.era==='1933'?`<b>In 1933 the claim was true:</b> the government paid to destroy crops and livestock to raise farm prices.`:`<b>Today the big loss is ordinary waste:</b> 29% of the U.S. food supply went unsold or uneaten in 2024. ${p.counts==='prices'?'The sugar program raises prices without destroying food.':'No current program here destroys food to raise prices.'}`;
-  return `Child poverty went from <b>${f1(CTC.y21)}% to ${f1(CTC.y22)}%</b> when the expansion ended: ${Math.round(10*(CTC.y22-CTC.y21))} more children per 1,000. ${p.evid==='sims'?'Simulations disagree by more than 3 times on how many parents would leave work.':'Some studies of actual 2021 jobs found no significant drop in work.'}`;},
- gut:{better:'lower',
-  get controls(){const c=REF&&REF.p?REF.p.card:'tax';return ['card',GID[c]];},
-  get ask(){return ASK[REF&&REF.p?REF.p.card:'tax'];},
-  get how(){return HOW[REF&&REF.p?REF.p.card:'tax'];},
-  lock(sim){const c=cur(sim),g=sim.p[GID[c]];return {card:c,val:g,v:truthGap(c,g),label:unitTxt(c,g)};},
-  solve(sim){const c=cur(sim),g=sim.p[GID[c]];let t,label;
-   if(c==='tax'){t=clamp(g,FAIR.tax,ITEP.tot);label='$31B (FAIR) to $96.7B (ITEP)';}
-   else if(c==='aid'){t=aidPct();label=`$${f2(t)} of every $100`;}else if(c==='food'){t=FOOD.pct;label='29%';}else{t=CTC.y22;label='12.4%';}
-   sim.p[GID[c]]=t;sim.st.rev[c]=true;return {card:c,val:t,v:truthGap(c,t),label};},
-  compare(sim,g,m){const c=g.card;
-   if(c==='tax'){if(g.v<0.5)return `Your guess, $${f0(g.val)}B, sits inside the range of published estimates: $31B (FAIR) to $96.7B (ITEP). Groups on opposite sides of the debate agree it is tens of billions, not zero.`;
-    const pp=g.val*1e9/(ITEP.pop*1e6);return `Your guess was <b>$${f1(g.v)}B ${g.val<FAIR.tax?'below the lowest':'above the highest'}</b> published estimate. Spread over ITEP’s 10.9 million people, $${f0(g.val)}B is about <b>${money(pp)} each</b>, against ITEP’s ${money(ppItep())} and FAIR’s ${money(ppFair())}.${g.val<FAIR.tax?' Even the estimate from the group that wants less immigration is far above zero.':''}`;}
-   if(c==='aid'){const b=sim.p.bill,gb=b*g.val/100,mb=b*aidPct()/100;if(g.v<0.15)return `Your gut was right on: about 65 cents of every $100. On a ${money(b)} tax bill that is about ${money(mb)}.`;
-    return `You guessed <b>$${f1(g.val)}</b> of every $100; the real figure is <b>$${f2(aidPct())}</b>. On a ${money(b)} family tax bill, your guess implies ${money(gb)} going to international affairs. The real share is about <b>${money(mb)}</b>: you were ${g.val>aidPct()?'about '+Math.round(g.val/aidPct())+' times too high':'too low'}.`;}
-   if(c==='food'){if(g.v<1.5)return `Your gut was right on: about 29 pounds of every 100. Nationwide, that is 70 million tons a year.`;
-    return `Out of every 100 pounds of food, you guessed <b>${f0(g.val)} lb</b> goes unsold or uneaten. ReFED measured <b>29 lb</b>: ${g.val<29?f0(29-g.val)+' lb more than you thought':f0(g.val-29)+' lb less than you thought'}. Nationwide that is 70 million tons in 2024, and most of it is ordinary waste, not a price policy.`;}
-   const gk=Math.round(10*g.val),mk=Math.round(10*CTC.y22);if(g.v<0.5)return `Your gut was right on: about ${mk} children per 1,000 in poverty in 2022, up from 52 in 2021.`;
-   return `Per 1,000 children, your guess means <b>${gk}</b> in poverty in 2022. The measured rate means <b>${mk}</b>, up from 52 in 2021. You were off by about ${Math.abs(mk-gk)} children per 1,000.${g.val<CTC.y22?' Many people expect a small change; the rate more than doubled.':''}`;},
-  again(sim){const i=CARDS.indexOf(cur(sim)),n=CARDS[(i+1)%4];sim.p.card=n;const ct=sim.def.controls.find(x=>x.id===GID[n]);sim.p[GID[n]]=ct.def;if(sim.st&&sim.st.rev)sim.st.rev[n]=false;syncVis(sim);}
+ draw(sim,ctx,vdt,k){const W=800,H=450,p=sim.p,sh=shown(sim),S=GS(sim),C=cs(sim),big=k>1.3;
+  ctx.fillStyle=PAL['cv-bg'];ctx.fillRect(0,0,W,H);
+  /* the claim */
+  ctx.font='700 '+(12*k)+'px '+FONT;const pt='A claim you might hear',pw=ctx.measureText(pt).width+14*k;pill(ctx,pt,20+pw/2,12+10*k,PAL['s2'],'#fff',12*k);
+  const hs=Math.max(16,13*k),hh=wrap(ctx,CLAIM[p.claim],20,30+20*k+hs*0.5,760,{s:hs,w:700,max:2,b:'middle'});
+  let y=30+20*k+hh+6*k;
+  /* axis: dollars per person */
+  const LX=big?190:200,RX=740,X=v=>LX+(RX-LX)*clamp(v,0,MAXV)/MAXV;
+  txt(ctx,'Dollars per person, per year',20,y+7*k,{s:13*k,w:700,c:PAL['cv-soft'],b:'middle'});y+=28*k+4;
+  ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;[0,5000,10000,15000].forEach(v=>{ctx.beginPath();ctx.moveTo(X(v),y+2);ctx.lineTo(X(v),y+8);ctx.stroke();
+   txt(ctx,v?'$'+(v/1000)+'k':'$0',X(v),y,{s:12*k,c:PAL['cv-soft'],a:v===0?'left':v===MAXV?'right':'center',b:'bottom'});});
+  y+=10;
+  const rows=[{id:'gut'}];if(p.claim==='more')rows.push({id:'fair_c',who:'FAIR',what:'costs',tot:FAIR.cost,pop:FAIR.pop,v:cpF(),col:PAL['s1']});
+  rows.push({id:'fair_t',who:'FAIR',what:'taxes',tot:FAIR.tax,pop:FAIR.pop,v:ppF(),col:PAL['s5']},{id:'itep_t',who:'ITEP',what:'taxes',tot:ITEP.tax,pop:ITEP.pop,v:ppI(),col:PAL['s2']});
+  const foot=atLeast('honors')?52*k:30*k,avail=H-y-foot-8,rh=avail/rows.length,bh=Math.min(22,rh*0.36);
+  const gridTop=y,gridBot=y+rh*rows.length;
+  /* the claim's benchmark */
+  if(p.claim==='none'){ctx.strokeStyle=PAL['cv-ink'];ctx.setLineDash([5,4]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(0),gridTop);ctx.lineTo(X(0),gridBot);ctx.stroke();ctx.setLineDash([]);}
+  else if(sh&&costOK(sim)){ctx.strokeStyle=PAL['s1'];ctx.setLineDash([5,4]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(X(cpF()),gridTop+rh);ctx.lineTo(X(cpF()),gridBot);ctx.stroke();ctx.setLineDash([]);}
+  rows.forEach((r,i)=>{const yc=y+i*rh+bh/2+4,mine=r.id===C.id,sh=shown(sim)&&(r.id!=='fair_c'||costOK(sim));
+   if(r.id==='gut'){const gv=S&&S.g?S.g.guess:p.guess;
+    txt(ctx,'Your gut',LX-10,yc,{s:12*k,w:700,c:PAL['s4'],a:'right',b:'middle'});
+    ctx.fillStyle=PAL['s4'];ctx.globalAlpha=.85;rr(ctx,X(0),yc-bh/2,Math.max(3,X(gv)-X(0)),bh,4);ctx.fill();ctx.globalAlpha=1;
+    vlab(ctx,X(gv),yc,$(gv),k,PAL['s4']);
+    if(p.claim==='none')txt(ctx,'The claim: $0',X(0)+4,yc+bh/2+10*k,{s:12*k,w:700,c:PAL['cv-ink'],b:'middle'});
+    return;}
+   txt(ctx,(big?r.who+' '+r.what:r.who+': '+r.what),LX-10,yc,{s:12*k,w:700,c:mine?PAL['s4']:PAL['cv-ink'],a:'right',b:'middle'});
+   if(sh){ctx.fillStyle=r.col;rr(ctx,X(0),yc-bh/2,Math.max(3,X(r.v)-X(0)),bh,4);ctx.fill();vlab(ctx,X(r.v),yc,$(r.v),k,PAL['cv-ink']);}
+   else{ctx.fillStyle=PAL['cv-bg2'];rr(ctx,X(0),yc-bh/2,RX-X(0),bh,4);ctx.fill();ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;ctx.stroke();
+    txt(ctx,'?',(X(0)+RX)/2,yc,{s:13*k,w:700,c:PAL['cv-soft'],a:'center',b:'middle'});}
+   if(mine){ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2.5;rr(ctx,X(0)-3,yc-bh/2-3,RX-X(0)+6,bh+6,6);ctx.stroke();}
+   /* the division, under the bar */
+   const dl=sh?(big?`${bil(r.tot)} ÷ ${mil(r.pop)} = ${$(r.v)}`:divLine(r)):(big?`${bil(r.tot)} ÷ ${mil(r.pop)} = ?`:`${bil(r.tot)} ÷ ${mil(r.pop)} people = ?`);
+   txt(ctx,dl,X(0)+6,yc+bh/2+10*k,{s:12*k,w:mine?700:400,c:mine?PAL['cv-ink']:PAL['cv-soft'],b:'middle'});});
+  /* footer: the formula */
+  let fy=H-foot+12*k;
+  if(sh&&p.claim==='more'&&!costOK(sim))txt(ctx,'Rate = total ÷ people. Work out FAIR’s costs per person in the question below.',20,fy,{s:13*k,w:700,c:PAL['cv-ink'],b:'middle'});
+  else if(sh){const line=p.claim==='none'?`Rate = total ÷ people. Lowest estimate: ${$(ppF())} a person, not $0.`:(big?`Costs ${$(cpF())} vs. taxes ${$(taxPP(sim))} a person (${taxWho(sim)})`:`Rate = total ÷ people. FAIR’s costs, ${$(cpF())} a person, vs. ${taxWho(sim)}’s taxes, ${$(taxPP(sim))}.`);
+   txt(ctx,line,20,fy,{s:13*k,w:700,c:PAL['cv-ink'],b:'middle'});
+   if(atLeast('honors')){fy+=20*k;txt(ctx,`Total = rate × people: ${$(ppI())} × ${f1(p.pop)} million = ${bil(+(ppI()*p.pop/1e3).toFixed(1))}${big?'':' (ITEP’s rate)'}`,20,fy,{s:12*k,c:PAL['cv-soft'],b:'middle'});}}
+  else txt(ctx,S&&S.g?'Work out the rate to see the bars.':'Lock in your gut to see the rates.',20,fy,{s:13*k,c:PAL['cv-soft'],b:'middle'});},
+ narrate(sim){const p=sim.p,C=cs(sim);
+  if(!shown(sim)){if(p.claim==='none')return `The claim says <b>$0</b>. ${C.who} publishes a total of ${bil(C.tot)} in taxes and counts ${mil(C.pop)} people. <b>How many dollars is that per person?</b> Your gut right now: ${$(p.guess)}.`;
+   return `To test this claim, put taxes and costs on the same footing: <b>dollars per person</b>. FAIR counts ${bil(FAIR.cost)} in costs for ${mil(FAIR.pop)} people. Your gut right now: ${$(p.guess)} a person.`;}
+  if(p.claim==='none')return `Per person, FAIR’s estimate is <b>${$(ppF())}</b> a year and ITEP’s is <b>${$(ppI())}</b>. Both are far above the claim’s $0. The two totals differ by ${bil(ITEP.tax-FAIR.tax)}, and the rates show it is mostly method, not headcount.`;
+  if(!costOK(sim))return `Same method for this claim: FAIR counts ${bil(FAIR.cost)} in costs for ${mil(FAIR.pop)} people. Work out the costs per person in the question below, then compare it with the tax rates: ${$(ppF())} and ${$(ppI())}.`;
+  return `FAIR’s costs come to <b>${$(cpF())}</b> a person, above both tax rates (${$(ppF())} and ${$(ppI())}). Those costs include U.S.-born children’s schooling, and CBO finds the federal budget comes out ahead. <b>Which budget you divide matters.</b>`;},
+ gut:{better:'lower',controls:['guess'],
+  get ask(){const sim=REF,C=sim&&sim.p?cs(sim):{who:'FAIR',what:'taxes',tot:FAIR.tax,pop:FAIR.pop},T=bil(C.tot).replace('B',' billion');
+   if(C.what==='costs')return {bio:`FAIR counts ${T} in costs for ${mil(C.pop)} undocumented immigrants. Drag the slider here to how many dollars of cost you think that is per person, per year. Go with your gut, then lock it in.`,
+    honors:`Before you divide: drag the slider here to your gut guess of FAIR’s costs per person, per year, from ${T} for ${mil(C.pop)} people. Then lock it in.`};
+   return {bio:`The claim says $0. ${C.who} counts ${T} in taxes from ${mil(C.pop)} people. Drag the slider here to how many dollars you think that is per person, per year. Go with your gut, then lock it in.`,
+    honors:`Before you divide: drag the slider here to your gut guess of the taxes per person, per year, from ${C.who}’s total of ${T} for ${mil(C.pop)} people. Then lock it in.`};},
+  hint:{bio:'Lock in your gut. Then you will work out the real rate yourself from the published total.'},
+  lock(sim){const C=cs(sim);return {v:Math.abs(sim.p.guess-C.v),guess:sim.p.guess,claim:sim.p.claim,label:`${$(sim.p.guess)} a person`};},
+  solve(sim){const C=cs(sim);sim.p.guess=Math.round(C.v);return {v:Math.abs(sim.p.guess-C.v),guess:C.v,claim:sim.p.claim,label:`${$(C.v)} a person (${C.who} ${C.what})`};},
+  calc:{unit:'$',d:0,tol:a=>Math.max(20,0.01*a),
+   prompt:{bio:sim=>{const C=cs(sim);return C.what==='costs'?`FAIR estimates governments spent <b>$182 billion</b> a year on undocumented immigrants and their U.S.-born children, and counts <b>15.5 million</b> undocumented immigrants. How many dollars of cost is that <b>per person, per year</b>?`:`${C.who} estimates undocumented immigrants paid <b>${bil(C.tot).replace('B',' billion')}</b> in taxes in a year, and counts <b>${mil(C.pop)}</b> people. How many dollars is that <b>per person, per year</b>?`;},
+    ap:sim=>{const C=cs(sim);return `${C.who}: ${bil(C.tot).replace('B',' billion')} in ${C.what}, ${mil(C.pop)} people. Write both numbers in powers of ten and find the ${C.what} per person, per year.`;}},
+   answer:sim=>cs(sim).v,
+   hint:'Divide the total by the number of people. A billion ÷ a million = 1,000, so divide the two numbers you see, then multiply by 1,000.',
+   steps(sim){const C=cs(sim),q=C.tot/C.pop,out=[];
+    if(atLeast('ap'))out.push(`${bil(C.tot).replace('B',' billion')} = ${C.tot} × 10⁹ and ${mil(C.pop)} = ${C.pop} × 10⁶, so the rate is (${C.tot} ÷ ${C.pop}) × 10³.`);
+    out.push(`Rate = total ÷ people = ${bil(C.tot)} ÷ ${mil(C.pop)}.`);
+    out.push(`Billions ÷ millions = thousands: ${C.tot} ÷ ${C.pop} = ${q.toFixed(4)} thousand.`);
+    out.push(`That is <b>${$(C.v)}</b> per person, per year.`);
+    out.push(C.what==='costs'?`Compare it with taxes per person: ${$(ppF())} (FAIR) or ${$(ppI())} (ITEP). Both are lower.`:`Check: ${$(C.v)} × ${mil(C.pop)} = ${bil(+(C.v*C.pop/1e3).toFixed(1))}, the published total.`);
+    return out;}},
+  formula(sim){const C=cs(sim),L=`${C.what==='costs'?'Costs':'Taxes'} per person = ${bil(C.tot)} ÷ ${mil(C.pop)} people = ${$(C.v)} a year`;
+   const cmp=C.what==='costs'?`<br>Taxes per person: ${bil(FAIR.tax)} ÷ ${mil(FAIR.pop)} = ${$(ppF())} (FAIR); ${bil(ITEP.tax)} ÷ ${mil(ITEP.pop)} = ${$(ppI())} (ITEP)`:'';
+   return L+cmp+(atLeast('honors')?`<br>Total = rate × people: ${$(ppI())} × ${mil(FAIR.pop)} = ${bil(+(ppI()*FAIR.pop/1e3).toFixed(1))} at ITEP’s rate`:'');},
+  how:{bio:'Divide each published total by the number of people it covers. Then compare the rates, not the totals, because the two groups count different numbers of people.',
+   honors:'Rate = total ÷ people. Multiplying a rate by a headcount rebuilds a total, so you can test whether a gap between two totals comes from the headcount or from the method.'},
+  compare(sim,g,m){const C=cs(sim),off=Math.abs(g.guess-C.v),tot=off*C.pop/1e3;const K=sim.ui&&sim.ui.calc,self=K&&K.done&&K.correct?' You also worked out the rate yourself, so you can check any total this way.':'';
+   let s=off<=Math.max(100,0.05*C.v)?`Your gut was right on: within ${$(off)} a person.`:`Your gut was off by <b>${$(off)} a person</b>: you guessed ${$(g.guess)}, and ${C.who}’s ${C.what} come to <b>${$(C.v)}</b>. Across ${mil(C.pop)} people, that gap is about ${bil(+tot.toFixed(1))} a year.`;
+   if(C.what==='taxes')s+=C.who==='FAIR'?` That is the lower of the two estimates, and it is far above the claim’s $0. ITEP’s comes to ${$(ppI())}.`:` FAIR’s lower estimate, ${$(ppF())} a person, is also far above the claim’s $0.`;
+   else s+=` FAIR’s costs per person are above both tax rates (${$(ppF())} and ${$(ppI())}), counting U.S.-born children’s costs and state and local budgets. CBO, looking only at the federal budget, finds the 2021 to 2026 surge lowers deficits.`;
+   return s+self;},
+  again(sim){const cur=cs(sim).id,opts=[['none','fair'],['none','itep'],['more','fair'],['more','itep']].filter(o=>{const t=o[0]==='more'?'fair_c':o[1]==='itep'?'itep_t':'fair_t';return t!==cur;});
+   const o=opts[Math.floor(Math.random()*opts.length)];sim.p.claim=o[0];sim.p.src=o[1];sim.p.guess=0;sim.p.reveal=false;}
  },
  challenges:[
-  {lvl:'bio',instant:true,card:'tax',q:'ITEP, which leans left, and FAIR, which advocates lower immigration, both estimated the taxes undocumented immigrants pay. What do their estimates agree on?',choices:['They pay almost nothing','They pay tens of billions of dollars a year','They pay more in taxes than they cost'],correct:1,explain:'ITEP: $96.7B in 2022. FAIR: $31B. They disagree about the net (FAIR finds a net cost of $150.7B), but both are far above zero.'},
-  {lvl:'bio',instant:true,card:'aid',q:'About how much of every $100 the federal government spent in fiscal year 2026 went to international affairs, which includes all foreign aid?',choices:['About 65 cents','About $5','About $25'],correct:0,explain:'$48.0B ÷ $7,395.8B = 0.65%. That is 65 cents of every $100, and it also covers diplomacy and embassies, not only aid.'},
-  {lvl:'bio',instant:true,card:'food',q:'In spring 2020, some dairy farmers dumped milk. Why?',choices:['A federal program paid them to destroy it to raise prices','Schools and restaurants closed, and the supply chain could not reroute the milk fast enough','Milk had spoiled because of a heat wave'],correct:1,explain:'It was a supply-chain breakdown, not a price policy. Milk bound for school cafeterias and restaurants suddenly had nowhere to go.'},
-  {lvl:'honors',instant:true,card:'tax',q:'FAIR counts 15.5 million people and $31B in taxes. ITEP counts 10.9 million and $96.7B. Is the gap mostly about how many people each counts?',choices:['Yes: FAIR counts more people','No: per person, FAIR finds about $2,000 and ITEP about $8,872, so the method matters more','They agree once you adjust for headcount'],correct:1,explain:'$31B ÷ 15.5 million = $2,000. $96.7B ÷ 10.9 million ≈ $8,872. At ITEP’s rate, 15.5 million people would pay about $137.5B, so a bigger headcount would make the gap wider, not close it.'},
-  {lvl:'honors',instant:true,card:'ctc',q:'Child poverty (SPM) went from 5.2% in 2021 to 12.4% in 2022. What does that comparison show by itself?',choices:['That the expansion was worth its cost','That child poverty more than doubled when the expansion ended, which fits the claim it cut poverty; whether it was worth the cost is still a value question','Nothing, because poverty is impossible to measure'],correct:1,explain:'The jump is 7.2 points, about 72 more children per 1,000. Other pandemic aid also wound down in 2022, so not all of it is the credit. Worth the cost? That weighs dollars, work and children’s needs: a value judgment.'},
-  {lvl:'honors',instant:true,card:'food',q:'GAO found the sugar program keeps U.S. sugar prices about twice world prices. Does that make “the government destroys food to keep prices up” true today?',choices:['Yes, it destroys sugar','No: it keeps prices up without destroying food, costing consumers an estimated $2.5B to $3.5B a year','No: it lowers sugar prices'],correct:1,explain:'Raising prices and destroying food are different claims. The sugar program fits the first, not the second.'},
-  {lvl:'ap',instant:true,card:'tax',q:'The National Academies found the 2013 net cost of all first-generation immigrants ranged from about $279B (average share of public goods) to about $43B (marginal cost only). About how many times larger is the high end?',choices:['About 2.5 times','About 6.5 times','About 65 times'],correct:1,explain:'279 ÷ 43 ≈ 6.5. One accounting choice, how to charge for things like defense, moves the answer more than six-fold. The same study found the second generation among the strongest fiscal contributors.'},
-  {lvl:'ap',instant:true,card:'ctc',q:'Simulations predict about 410,000 to 1.5 million parents leaving work. Some studies of actual 2021 employment found no significant drop. What is the strongest reason the two can differ?',choices:['Simulations are always wrong','The 2021 expansion was temporary and short, so measured effects may not show what a permanent credit would do, while simulations rest on assumed responses to incentives','The studies counted adults without children'],correct:1,explain:'Both sides have a fair point. Measured data show what happened in one unusual year. Simulations project a permanent policy but depend on assumptions. The high simulation is about 3.7 times the low one.'},
-  {lvl:'ap',instant:true,card:'tax',q:'ITEP estimates $25.7B to Social Security and $6.4B to Medicare, out of $96.7B in total taxes. What share of the total is that?',choices:['About 13%','About 33%','About 61%'],correct:1,explain:'(25.7 + 6.4) ÷ 96.7 = 32.1 ÷ 96.7 ≈ 33%. The 61% figure is ITEP’s federal share: $59.4B of $96.7B.'}
+  {lvl:'bio',kind:'num',card:'more',hide:true,q:'Now check the other claim the same way. FAIR counts $182 billion in costs for 15.5 million people. About how many dollars of cost is that per person, per year?',answer:182e9/15.5e6,tol:120,unit:'$',d:0,hint:'Divide 182 by 15.5, then multiply by 1,000 (billions ÷ millions = thousands).',explain:'182 ÷ 15.5 = 11.742 thousand, so about $11,742 a person. That is above both tax rates, $2,000 (FAIR) and $8,872 (ITEP). FAIR’s costs include U.S.-born children’s schooling, and CBO finds the federal budget comes out ahead, so the answer depends on which budget you count.'},
+  {lvl:'bio',instant:true,q:'ITEP’s total is $96.7B and FAIR’s is $31B. Why compare per-person rates instead of the two totals?',choices:['Totals are always wrong','They count different numbers of people (10.9 million and 15.5 million), so totals alone hide the rate','Per-person numbers always come out bigger'],correct:1,explain:'A total depends on both the rate and the headcount. Dividing by each source’s own headcount puts them on the same footing: $8,872 and $2,000 a person.'},
+  {lvl:'bio',instant:true,q:'A post says: “$96.7 billion vs. $31 billion. One side must be lying.” What should you check first?',choices:['Which side posted it','How many people each total covers, and what each one counts','Which number is rounder'],correct:1,explain:'The totals cover different headcounts and different methods. Divide first: $8,872 and $2,000 a person. Then ask what each one counts.'},
+  {lvl:'honors',kind:'num',q:'At ITEP’s rate of about $8,872 a person, what total in taxes would FAIR’s 15.5 million people pay? Answer in billions of dollars.',answer:ITEP.tax/ITEP.pop*15.5,tol:0.6,unit:'$B',d:1,hint:'Total = rate × people. Multiply 8,872 by 15.5 million, then write it in billions.',explain:'$8,871.56 × 15.5 million ≈ $137.5B. A bigger headcount at ITEP’s rate makes the gap with FAIR’s $31B wider, so the two sources differ mainly in method.'},
+  {lvl:'honors',instant:true,q:'FAIR counts more people (15.5 million) than ITEP (10.9 million). Is that why FAIR’s total is lower?',choices:['Yes: more people means a lower total','No: FAIR’s rate is about $2,000 a person and ITEP’s about $8,872, so the methods differ','They agree once you adjust for headcount'],correct:1,explain:'$31B ÷ 15.5 million = $2,000. $96.7B ÷ 10.9 million ≈ $8,872, about 4.4 times as much. More people at the same rate would raise a total, not lower it.'},
+  {lvl:'ap',instant:true,q:'The National Academies found the 2013 net cost of all first-generation immigrants was about $279B when each person is charged an average share of public goods like defense, and about $43B when only the added cost is charged. About how many times larger is the high end?',choices:['About 2.5 times','About 6.5 times','About 65 times'],correct:1,explain:'279 ÷ 43 ≈ 6.5. One accounting choice in the top of the fraction moves the answer more than six-fold. The same study found the second generation among the strongest fiscal contributors.'},
+  {lvl:'ap',instant:true,q:'ITEP estimates $25.7B to Social Security and $6.4B to Medicare, out of $96.7B in total taxes. What share of the total is that?',choices:['About 13%','About 33%','About 61%'],correct:1,explain:'(25.7 + 6.4) ÷ 96.7 = 32.1 ÷ 96.7 ≈ 33%. The 61% figure is ITEP’s federal share: $59.4B of $96.7B.'},
+  {lvl:'ap',kind:'num',q:'CBO found the 2021 to 2026 immigration surge lowers federal deficits by about $0.9 trillion over the 11 fiscal years 2024 through 2034. About how many billions of dollars a year is that, on average?',answer:900/11,tol:1,unit:'$B',d:1,hint:'A trillion is 1,000 billion. Divide 900 billion by 11 years.',explain:'$900B ÷ 11 ≈ $81.8B a year. A ten-year total and a one-year figure need the same denominator before you compare them. CBO’s estimate covers everyone in the surge, not only undocumented immigrants, and only the federal budget.'}
  ],
  tour:[
-  {title:'The claim',text:'Each card starts with a common claim. This one is a number: $0 in taxes. A number can be checked.',focus:[0,0,800,80],pause:true,setup:sim=>BioLab.setValues(sim,{card:'tax',pop:10.9,kids:true,pg:'avg'})},
-  {title:'Two estimates, two sides',text:'ITEP, which leans left, estimates $96.7B in 2022: $59.4B federal and $37.3B state and local. FAIR, which advocates lower immigration, estimates $31B. Both are far above $0, so “no taxes” is false.',focus:[0,80,800,150],pause:true},
-  {lvl:'honors',title:'Headcount or method?',text:'FAIR counts more people, 15.5 million. Set the population to 15.5 million: at ITEP’s rate of about $8,872 each, the total would be $137.5B. A bigger headcount widens the gap. The two groups differ mainly in method.',focus:[0,80,800,150],pause:true,setup:sim=>BioLab.setValues(sim,{pop:15.5})},
-  {title:'Taxes paid is not the net',text:'FAIR also counts costs, including school for U.S.-born children: $182B in costs minus $31B in taxes leaves a net cost of $150.7B. That is a different question from “no taxes.”',focus:[0,228,800,150],pause:true,setup:sim=>BioLab.setValues(sim,{pop:10.9})},
-  {title:'What you count changes the answer',text:'The National Academies studied all first-generation immigrants, legal and not. Charge them an average share of things like defense and the 2013 net cost is about $279B. Count only the added cost and it is about $43B. Their children, the second generation, were among the strongest fiscal contributors.',focus:[0,228,800,150],pause:true},
-  {title:'Federal or state?',text:'CBO found the 2021–2026 immigration surge adds $1.2T in federal revenue and lowers federal deficits about $0.9T over 2024–2034, while raising state and local costs. Which budget you look at matters.',focus:[0,370,800,80],pause:true},
-  {title:'The bishops and the math',text:'The U.S. bishops affirm that nations may regulate their borders and oppose “indiscriminate mass deportation.” That is a moral claim. Apply the same test to it as to every claim: the math checks facts, and it cannot settle what we owe people. Three more claims wait in the full lab.',pause:true}
+  {title:'A claim is a number',text:'“Undocumented immigrants pay no taxes” is a claim about a number: $0. A number can be checked. Two groups on opposite sides of the immigration debate published estimates.',focus:[0,0,800,90],pause:true,setup:sim=>BioLab.setValues(sim,{claim:'none',src:'fair',pop:15.5})},
+  {title:'Two totals, two headcounts',text:'FAIR, which advocates lower immigration, estimates $31B in taxes and counts 15.5 million people. ITEP, which leans left, estimates $96.7B and counts 10.9 million. The totals cover different numbers of people.',pause:true},
+  {title:'Divide by the right people',text:'Divide each total by its own headcount. FAIR: $31B ÷ 15.5 million = $2,000 a person. ITEP: $96.7B ÷ 10.9 million ≈ $8,872. Both are far above the claim’s $0.',pause:true},
+  {title:'The other claim',text:'“Undocumented immigrants pay more in taxes than they cost” is checked the same way. FAIR’s costs: $182B ÷ 15.5 million ≈ $11,742 a person, above both tax rates.',pause:true,setup:sim=>BioLab.setValues(sim,{claim:'more'})},
+  {title:'What the top counts',text:'FAIR’s costs include school for U.S.-born children, who are citizens. CBO, looking only at the federal budget, finds the 2021 to 2026 surge lowers deficits about $0.9T over 2024 to 2034. Same people, different budgets.',pause:true},
+  {lvl:'honors',title:'Headcount or method?',text:'Total = rate × people. At ITEP’s rate, FAIR’s 15.5 million people would pay about $137.5B. A bigger headcount widens the gap with $31B, so the sources differ mainly in method.',pause:true,setup:sim=>BioLab.setValues(sim,{claim:'none',src:'itep',pop:15.5})},
+  {lvl:'ap',title:'One choice, six times the answer',text:'The National Academies put the 2013 net cost of all first-generation immigrants at about $279B with an average share of public goods, or $43B counting only the added cost: 279 ÷ 43 ≈ 6.5.',pause:true}
  ],
- lab:{bio:'<p><b>Question:</b> Which of these four claims are factual claims you can check, and which are value claims?</p><ol><li>For each card, set your guess and lock it in before you look.</li><li>Record your guess, the published number and the verdict.</li><li>Mark each claim: checkable fact, value judgment or both.</li></ol><p>Write one sentence for each: what would change your mind?</p>',
-  honors:'<p><b>Question:</b> How much do assumptions move the answer?</p><ol><li>On the taxes card, compare per-person taxes for ITEP and FAIR. Then switch public goods between average and marginal.</li><li>On the Child Tax Credit card, switch the evidence between simulations and actual 2021 jobs.</li><li>List each assumption and which side it helps.</li></ol>',
-  ap:'<p><b>Question:</b> Pick one claim and write the strongest case for each side using only numbers from this tool.</p><ol><li>Name each source and what it counts.</li><li>Compute one ratio or per-person figure that a reader would not see in a headline.</li></ol><p><b>CER:</b> Claim, evidence, and reasoning that separates what the math settles from what it cannot.</p>'},
+ onTourExit(sim){BioLab.setValues(sim,{claim:'none',src:'fair'});},
+ lab:{bio:'<p><b>Question:</b> Does each claim hold up when you divide by the right people?</p><ol><li>Lock in your gut, then work out the rate for the claim on screen.</li><li>Press <b>Check the other claim</b> and do it again.</li><li>Record each total, each headcount and each rate in a table.</li></ol><p>Write one sentence for each claim: what does the per-person rate show, and what would you still want to know?</p>',
+  honors:'<p><b>Question:</b> Is the gap between the two tax estimates about headcount or method?</p><ol><li>Set the headcount for ITEP’s rate to 10.9, 13 and 15.5 million. Record the total each time.</li><li>Compare each total with FAIR’s $31B.</li></ol><p>Explain your result with total = rate × people.</p>',
+  ap:'<p><b>Question:</b> Pick one claim and write the strongest case for each side using only rates from this tool.</p><ol><li>Name each source, its numerator and its denominator.</li><li>Compute one rate, ratio or share a headline would not show.</li></ol><p><b>CER:</b> Claim, evidence, and reasoning that separates what the math settles from what it cannot.</p>'},
  terms:[
-  {t:'Net fiscal impact',d:'Taxes a group pays minus the cost of government services it uses. It depends on which taxes and costs you count.'},
-  {t:'Federal outlays',d:'Money the federal government actually spends in a fiscal year. Fiscal year 2026 ran from October 2025 to September 2026.'},
-  {t:'Supplemental Poverty Measure (SPM)',d:'A Census Bureau poverty measure that counts tax credits and benefits like SNAP as income, so it can show the effect of programs.'},
+  {t:'Rate (per person)',d:'A total divided by the number of people it covers. It lets you compare groups of different sizes.'},
+  {t:'Denominator',d:'The bottom of a fraction: here, the number of people a total is divided by. The right denominator counts the same people as the total.'},
+  {t:'Net fiscal impact',d:'Taxes a group pays minus the cost of government services it uses. It depends on which taxes, costs and budgets you count.'},
   {t:'Public goods',d:'Things government provides to everyone at once, like national defense. One more resident barely changes their cost.',lvl:'honors'},
-  {t:'Average vs. marginal cost',d:'Average cost splits the total evenly among everyone. Marginal cost counts only what one more person adds.',lvl:'honors'},
-  {t:'Refundable credit',d:'A tax credit paid even to families who owe little or no income tax. The 2021 Child Tax Credit was fully refundable.',lvl:'honors'},
-  {t:'Simulation vs. observational study',d:'A simulation predicts behavior from assumptions. An observational study measures what actually happened. They can disagree for good reasons.',lvl:'ap'}
+  {t:'Average vs. marginal cost',d:'Average cost splits a total evenly among everyone. Marginal cost counts only what one more person adds.',lvl:'ap'}
  ],
- about:'<p><b>How each card works.</b> You guess one number, then compare it with the published estimate. For taxes, two sources disagree, so any guess from $31B to $96.7B counts as on target. The tool computes per-person rates, shares and ratios from the figures below. It does not invent a net figure for combinations of assumptions no source has published.</p>'+
-  '<p><b>Taxes.</b> ITEP (2024 report; ITEP leans left): $96.7B in federal, state and local taxes in 2022 ($59.4B federal, $37.3B state and local; $25.7B to Social Security, $6.4B to Medicare), about $427M in Colorado, 10.9 million people (itep.org/undocumented-immigrants-taxes-2024/). FAIR (2023 report; FAIR advocates lower immigration): gross cost $182B, taxes $31B, net cost $150.7B, counting U.S.-born children’s costs, 15.5 million people. National Academies of Sciences (2016–17): for all first-generation immigrants, net cost mainly to state and local governments through children’s education; the second generation among the strongest fiscal contributors; 2013 first-generation net cost about $279B to $43B under different public-goods assumptions. CBO (2024): the 2021–2026 surge adds $1.2T in federal revenue and lowers deficits about $0.9T over 2024–2034, but raises state and local costs (cbo.gov/publication/60165). USCCB Special Message, Nov 12, 2025.</p>'+
-  '<p><b>Foreign aid.</b> International affairs $48.0B of $7,395.8B in FY2026 outlays (Treasury Monthly Treasury Statement). It includes diplomacy as well as aid. The family tax bill slider is for illustration only: taxes are not earmarked line by line, and the government also borrows.</p>'+
-  '<p><b>Food.</b> Agricultural Adjustment Act, 1933: about 6 million young pigs slaughtered and about 10 million acres of cotton plowed under (historical, approximate). GAO-24-106144: U.S. sugar about twice world prices in 2022, costing consumers an estimated $2.5B to $3.5B a year. USDA Section 32 buys surplus food and donates it to food banks and school meals. Spring 2020 milk dumping: a supply-chain breakdown when schools and restaurants closed. ReFED (2026 report, 2024 data): 70 million tons of surplus food, 29% of the food supply.</p>'+
-  '<p><b>Child Tax Credit.</b> SPM child poverty 5.2% in 2021 and 12.4% in 2022 (Columbia Center on Poverty and Social Policy, citing Census). Simulated parents leaving work: about 410,000 (Niskanen Center) to about 1.5 million (Corinth, Meyer, Stadnicki and Wu, NBER). Some studies of actual 2021 employment found no significant drop. The USCCB asked for a credit that reaches the poorest families.</p>'+
-  '<p>This is a simplified teaching tool, not financial or legal advice. No political party is named on purpose: every claim here is made by people across the spectrum, and each card names programs, laws and sources instead.</p>'
+ about:'<p><b>The method.</b> Rate = total ÷ people. Each per-person figure here is a published total divided by the same source’s own headcount, computed in this page. Total = rate × people rebuilds a total from a rate. The tool does not invent a net figure for any combination of assumptions no source has published.</p>'+
+  '<p><b>Sources.</b> ITEP (Institute on Taxation and Economic Policy, 2024 report; ITEP leans left): $96.7B in federal, state and local taxes in 2022 ($59.4B federal, $37.3B state and local; $25.7B to Social Security, $6.4B to Medicare), about $427M in Colorado, 10.9 million people (itep.org/undocumented-immigrants-taxes-2024/). FAIR (Federation for American Immigration Reform, 2023 report; FAIR advocates lower immigration): gross cost $182B, taxes $31B, net cost $150.7B, counting U.S.-born children’s costs, 15.5 million people. FAIR’s figures are rounded as published, so $182B − $31B does not exactly equal $150.7B. National Academies of Sciences, Engineering, and Medicine (2016–17): for all first-generation immigrants, legal and not, the net cost falls mainly on state and local governments, through children’s education; the second generation is among the strongest fiscal contributors; the 2013 first-generation net cost was about $279B or about $43B under different public-goods assumptions. CBO (2024): the 2021–2026 immigration surge adds $1.2T in federal revenue and lowers federal deficits about $0.9T over 2024–2034, while raising state and local costs (cbo.gov/publication/60165).</p>'+
+  '<p><b>What this number hides.</b></p><ul><li>An average spreads a total evenly over everyone. Real people pay very different amounts, and some pay none.</li><li>The denominator is itself an estimate. No one has an exact count of people living in the country without legal status, and the two sources differ by 4.6 million.</li><li>The two claims ask different questions. Taxes paid is one number; net cost also depends on which costs count (U.S.-born children’s schooling, a share of defense) and which budget you check (federal, or state and local).</li></ul>'+
+  '<p><b>Two claims, one method.</b> Both claims are heard in the immigration debate, from different directions. The tool checks each with the same per-person method and names programs and sources, not parties. Whether a nation should admit more or fewer people is a value question the rates do not settle.</p>'+
+  '<p><b>A named source.</b> In a Special Message (Nov 12, 2025), the U.S. Conference of Catholic Bishops affirmed that nations may regulate their borders and opposed “indiscriminate mass deportation.” Question for discussion: what could rates like these tell you about that statement, and what could they not?</p>'+
+  '<p>This is a simplified teaching tool, not financial or legal advice.</p>'
 };
 
 /* ---------- drawing ---------- */
 function wrap(ctx,s,x,y,w,o){o=o||{};const sz=o.s||13;ctx.font=(o.w||400)+' '+sz+'px '+FONT;const words=String(s).split(' ');let line='';const lines=[];
  words.forEach(wd=>{const t=line?line+' '+wd:wd;if(ctx.measureText(t).width>w&&line){lines.push(line);line=wd;}else line=t;});if(line)lines.push(line);
  const lh=o.lh||sz*1.25,L=lines.slice(0,o.max||99);L.forEach((l,i)=>txt(ctx,l,x,y+i*lh,o));return L.length*lh;}
-function hbar(ctx,X,y,v,h,col,a){ctx.globalAlpha=a===undefined?1:a;ctx.fillStyle=col;rr(ctx,X(0),y-h/2,Math.max(2,X(v)-X(0)),h,4);ctx.fill();ctx.globalAlpha=1;}
-function vlab(ctx,X,y,v,s,k,col,end){ctx.font='700 '+(12*k)+'px '+FONT;const w=ctx.measureText(s).width;const x=X(v)+8;if(x+w<(end||792))txt(ctx,s,x,y,{s:12*k,w:700,c:col||PAL['cv-ink'],b:'middle'});else txt(ctx,s,X(v)-8,y,{s:12*k,w:700,c:'#fff',a:'right',b:'middle'});}
-function ticks(ctx,X,y,vals,k,fmt){ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;vals.forEach(v=>{ctx.beginPath();ctx.moveTo(X(v),y+4);ctx.lineTo(X(v),y+12);ctx.stroke();txt(ctx,fmt(v),X(v),y,{s:12*k,c:PAL['cv-soft'],a:'center',b:'bottom'});});}
-function hidden(ctx,x,y,w,k,msg){ctx.font=(13*k)+'px '+FONT;const mw=ctx.measureText(msg).width+24;ctx.fillStyle=PAL['card'];rr(ctx,x+w/2-mw/2,y-14*k,mw,26*k,8);ctx.fill();txt(ctx,msg,x+w/2,y,{s:13*k,c:PAL['cv-soft'],a:'center',b:'middle'});}
-
-function drawTax(sim,ctx,k,top,sh){const p=sim.p,g=guessOf(sim),hon=atLeast('honors');
- const LX=230,RX=740,X=v=>LX+v/150*(RX-LX),X2=v=>LX+v/300*(RX-LX);
- const rh=Math.max(28,18*k),bh=Math.min(20,rh-10);
- let y=top+14;txt(ctx,'Taxes paid in one year ($ billions)',20,y,{s:13*k,w:700,c:PAL['cv-soft'],b:'middle'});
- y+=16*k+8;ticks(ctx,X,y,[0,50,100,150],k,v=>'$'+v+'B');
- const r1=y+rh*0.75,r2=r1+rh,r3=r2+rh;
- /* the claim line at $0 */
- ctx.strokeStyle=PAL['cv-soft'];ctx.setLineDash([5,4]);ctx.lineWidth=1.5;ctx.beginPath();ctx.moveTo(X(0),y+6);ctx.lineTo(X(0),r3+bh/2+2);ctx.stroke();ctx.setLineDash([]);
- const lab=(s,yy,c)=>txt(ctx,s,LX-10,yy,{s:12*k,w:700,c:c||PAL['cv-ink'],a:'right',b:'middle'});
- lab('Your guess',r1,PAL['s4']);hbar(ctx,X,r1,clamp(g,0,150),bh,PAL['s4'],0.85);vlab(ctx,X,r1,clamp(g,0,150),'$'+f0(g)+'B',k,PAL['s4']);
- lab('ITEP',r2);lab('FAIR',r3);
- if(!sh){hidden(ctx,LX,(r2+r3)/2,RX-LX,k,'Lock in your guess to see the estimates');}
- else{hbar(ctx,X,r2,ITEP.fed,bh,PAL['s2']);ctx.fillStyle=PAL['s6'];rr(ctx,X(ITEP.fed),r2-bh/2,X(ITEP.tot)-X(ITEP.fed),bh,4);ctx.fill();
-  if(k<1.3){txt(ctx,'federal',(X(0)+X(ITEP.fed))/2,r2,{s:12,w:700,c:'#fff',a:'center',b:'middle'});txt(ctx,'state, local',(X(ITEP.fed)+X(ITEP.tot))/2,r2,{s:12,w:700,c:'#fff',a:'center',b:'middle'});}
-  vlab(ctx,X,r2,ITEP.tot,'$96.7B',k);hbar(ctx,X,r3,FAIR.tax,bh,PAL['s5']);vlab(ctx,X,r3,FAIR.tax,'$31B',k);
-  if(hon&&Math.abs(p.pop-ITEP.pop)>0.05){const v=ppItep()*p.pop/1e3;ctx.strokeStyle=PAL['s2'];ctx.setLineDash([4,3]);ctx.lineWidth=2;ctx.strokeRect(X(0),r2-bh/2,Math.min(X(v),RX)-X(0),bh);ctx.setLineDash([]);}
-  if(hon&&Math.abs(p.pop-FAIR.pop)>0.05){const v=ppFair()*p.pop/1e3;ctx.strokeStyle=PAL['s5'];ctx.setLineDash([4,3]);ctx.lineWidth=2;ctx.strokeRect(X(0),r3-bh/2,X(v)-X(0),bh);ctx.setLineDash([]);}}
- /* net cost panel */
- y=r3+bh/2+16+8*k;txt(ctx,'Net cost to governments in one year ($ billions)',20,y,{s:13*k,w:700,c:PAL['cv-soft'],b:'middle'});
- y+=16*k+8;ticks(ctx,X2,y,[0,100,200,300],k,v=>'$'+v+'B');
- const n1=y+rh*0.75,n2=n1+rh,n3=n2+rh;
- txt(ctx,'FAIR',LX-10,n1,{s:12*k,w:700,a:'right',b:'middle'});txt(ctx,hon?'NAS average':'NAS high',LX-10,n2,{s:12*k,w:700,a:'right',b:'middle'});txt(ctx,hon?'NAS marginal':'NAS low',LX-10,n3,{s:12*k,w:700,a:'right',b:'middle'});
- if(sh){const dim=p.kids?1:0.3;
-  hbar(ctx,X2,n1,FAIR.net,bh,PAL['s5'],dim);vlab(ctx,X2,n1,FAIR.net,'$150.7B',k);
-  const hiA=!hon||p.pg==='avg',loA=!hon||p.pg==='marg';
-  hbar(ctx,X2,n2,NAS.avg,bh,PAL['s1'],dim*(hiA?1:0.3));vlab(ctx,X2,n2,NAS.avg,'$279B',k);
-  hbar(ctx,X2,n3,NAS.marg,bh,PAL['s1'],dim*(loA?1:0.3));vlab(ctx,X2,n3,NAS.marg,'$43B',k);
-  const ny=n3+bh/2+10+6*k;if(ny+2*15*k<452)wrap(ctx,p.kids?'NAS counts all first-generation immigrants (2013). CBO: the 2021–2026 surge lowers federal deficits about $0.9T over 2024–2034.':'Every cost estimate here counts children’s school costs. Leave them out and the net falls, but no source here publishes that number.',20,ny+6*k,760,{s:12*k,c:PAL['cv-soft'],max:2,b:'middle'});}
- else hidden(ctx,LX,n2,RX-LX,k,'Hidden until you guess');}
-
-function drawAid(sim,ctx,k,top,sh){const p=sim.p,g=clamp(guessOf(sim),0,100),pct=aidPct();
- const n=10,gap=3,avail=Math.min(450-top-24,340),cell=(avail-gap*(n-1))/n,x0=30,y0=top+22;
- txt(ctx,'Every $100 of federal spending',x0,y0-10,{s:13*k,w:700,c:PAL['cv-soft']});
- for(let i=0;i<100;i++){const cx=x0+(i%n)*(cell+gap),cy=y0+Math.floor(i/n)*(cell+gap);ctx.fillStyle=PAL['cv-bg2'];rr(ctx,cx,cy,cell,cell,3);ctx.fill();ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;ctx.stroke();
-  const f=clamp(g-i,0,1);if(f>0){ctx.fillStyle=PAL['s4'];ctx.globalAlpha=.55;ctx.fillRect(cx,cy,cell*f,cell);ctx.globalAlpha=1;}}
- if(sh){ctx.fillStyle=PAL['s1'];ctx.fillRect(x0,y0,cell*pct,cell);ctx.strokeStyle=PAL['s1'];ctx.lineWidth=2.5;ctx.strokeRect(x0,y0,cell,cell);}
- const gx=x0+n*(cell+gap)+30,w=780-gx;let y=y0+6;
- txt(ctx,'Your guess',gx,y,{s:12*k,w:700,c:PAL['s4'],b:'top'});y+=16*k;
- txt(ctx,'$'+f1(g)+' of every $100',gx,y,{s:Math.max(18,14*k),w:700,c:PAL['s4'],b:'top'});y+=Math.max(18,14*k)+14;
- if(!sh){hidden(ctx,gx,y+40*k,w,k,'Lock in to see the real share');return;}
- txt(ctx,'International affairs, FY2026',gx,y,{s:12*k,w:700,c:PAL['s1'],b:'top'});y+=16*k;
- txt(ctx,'$'+f2(pct)+' of every $100',gx,y,{s:Math.max(18,14*k),w:700,c:PAL['s1'],b:'top'});y+=Math.max(18,14*k)+10;
- y+=wrap(ctx,'$48.0B of $7,395.8B. The red sliver in the first square is its size.',gx,y,w,{s:12*k,c:PAL['cv-soft'],b:'top',max:3})+8;
- if(y<420)wrap(ctx,'On a '+money(p.bill)+' tax bill: about '+money(p.bill*pct/100)+'.',gx,y,w,{s:12*k,w:700,b:'top',max:2});}
-
-function drawFood(sim,ctx,k,top,sh){const p=sim.p,g=clamp(guessOf(sim),0,100);
- const L=20,R=780,X=v=>L+v/100*(R-L),by=top+18+14*k,bh=24;
- txt(ctx,'All U.S. food in a year',L,by-bh/2-8,{s:13*k,w:700,c:PAL['cv-soft']});
- ctx.fillStyle=PAL['card2'];rr(ctx,L,by-bh/2,R-L,bh,6);ctx.fill();
- if(sh){ctx.fillStyle=PAL['s1'];ctx.globalAlpha=.9;rr(ctx,L,by-bh/2,X(FOOD.pct)-L,bh,6);ctx.fill();ctx.globalAlpha=1;txt(ctx,'29% unsold or uneaten',X(FOOD.pct)+8,by,{s:12*k,w:700,b:'middle'});}
- ctx.strokeStyle=PAL['s4'];ctx.lineWidth=4;ctx.beginPath();ctx.moveTo(X(g),by-bh/2-4);ctx.lineTo(X(g),by+bh/2+4);ctx.stroke();
- const gl='Your guess: '+f0(g)+'%';ctx.font='700 '+(12*k)+'px '+FONT;const gw=ctx.measureText(gl).width;txt(ctx,gl,clamp(X(g)-gw/2,L,R-gw),by+bh/2+8,{s:12*k,w:700,c:PAL['s4'],b:'top'});
- const EV=[
-  {t:'1933: Agricultural Adjustment Act',b:'About 6M young pigs slaughtered, about 10M acres of cotton plowed under',d:1,pr:1,era:'1933'},
-  {t:'Sugar program',b:'U.S. sugar about 2× world price (2022): $2.5–3.5B a year to consumers',d:0,pr:1,era:'today'},
-  {t:'USDA Section 32',b:'Buys surplus food and donates it to food banks and school meals',d:0,pr:0,t2:'Food given away: yes',era:'today'},
-  {t:'Spring 2020 milk dumping',b:'Schools and restaurants closed, supply chains broke: not a price policy',d:1,pr:0,era:'today'}];
- const gy=by+bh/2+16+16*k,ch=(445-gy-10)/2,cw=370;
- EV.forEach((e,i)=>{const cx=20+(i%2)*(cw+20),cy=gy+Math.floor(i/2)*(ch+10);
-  const match=p.era===e.era&&(p.counts==='destroy'?(e.d&&e.pr):e.pr),on=!sh||match;
-  ctx.globalAlpha=sh?(p.era===e.era?1:0.4):1;ctx.fillStyle=PAL['card'];rr(ctx,cx,cy,cw,ch,10);ctx.fill();
-  ctx.strokeStyle=sh&&match?PAL['s1']:PAL['line'];ctx.lineWidth=sh&&match?3:1;rr(ctx,cx,cy,cw,ch,10);ctx.stroke();
-  let yy=cy+10;yy+=wrap(ctx,e.t,cx+12,yy,cw-24,{s:12*k,w:700,b:'top',max:2});
-  if(!sh){txt(ctx,'?',cx+cw/2,cy+ch/2+8*k,{s:20*k,w:700,c:PAL['cv-soft'],a:'center',b:'middle'});ctx.globalAlpha=1;return;}
-  const t1='Destroys food: '+(e.d?'yes':'no'),t2=e.t2||('Prices up: '+(e.pr?'yes':'no'));ctx.font='700 '+(12*k)+'px '+FONT;
-  const one=ctx.measureText(t1+'   '+t2).width<=cw-24,lh=12*k*1.25,tagTop=cy+ch-10-(one?1:2)*lh;
-  const nb=Math.floor((tagTop-yy-4)/lh);if(nb>0)wrap(ctx,e.b,cx+12,yy+2,cw-24,{s:12*k,c:PAL['cv-soft'],b:'top',max:nb});
-  const tc=match?PAL['s1']:PAL['cv-soft'];if(one)txt(ctx,t1+'   '+t2,cx+12,cy+ch-10,{s:12*k,w:700,c:tc,b:'bottom'});else{txt(ctx,t1,cx+12,cy+ch-10-lh,{s:12*k,w:700,c:tc,b:'bottom'});txt(ctx,t2,cx+12,cy+ch-10,{s:12*k,w:700,c:tc,b:'bottom'});}
-  ctx.globalAlpha=1;});}
-
-function drawCtc(sim,ctx,k,top,sh){const p=sim.p,g=clamp(guessOf(sim),0,25);
- const L=70,R=360,T=top+34,B=410,Y=v=>B-v/16*(B-T);
- txt(ctx,'Child poverty (SPM)',20,top+16,{s:13*k,w:700,c:PAL['cv-soft'],b:'middle'});
- ctx.strokeStyle=PAL['line'];ctx.lineWidth=1;[0,5,10,15].forEach(v=>{ctx.beginPath();ctx.moveTo(L,Y(v));ctx.lineTo(R,Y(v));ctx.stroke();txt(ctx,v+'%',L-8,Y(v),{s:12*k,c:PAL['cv-soft'],a:'right',b:'middle'});});
- const yrs=[['2021',CTC.y21],['2022',CTC.y22],['2023',CTC.y23]],bw=(R-L)/3;
- yrs.forEach(([lab,v],i)=>{const cx=L+bw*i+bw/2;txt(ctx,lab,cx,B+6,{s:12*k,w:700,a:'center',b:'top'});
-  const known=i===0||sh;if(known){ctx.fillStyle=i===0?PAL['s3']:PAL['s1'];rr(ctx,cx-bw*0.3,Y(v),bw*0.6,B-Y(v),4);ctx.fill();txt(ctx,f1(v)+'%',cx,Y(v)-6,{s:12*k,w:700,a:'center',b:'bottom'});}
-  else{ctx.strokeStyle=PAL['cv-soft'];ctx.setLineDash([4,4]);rr(ctx,cx-bw*0.3,Y(4),bw*0.6,B-Y(4),4);ctx.stroke();ctx.setLineDash([]);txt(ctx,'?',cx,Y(2),{s:16*k,w:700,c:PAL['cv-soft'],a:'center',b:'middle'});}});
- const gx=L+bw*1.5,gy=Y(Math.min(g,16));ctx.strokeStyle=PAL['s4'];ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(gx-bw*0.42,gy);ctx.lineTo(gx+bw*0.42,gy);ctx.stroke();
- const below=sh&&g>10.5&&g<14.5;ctx.font='700 '+(12*k)+'px '+FONT;const lw=ctx.measureText('Your guess').width+8;const ly=below?gy+4:gy-4-14*k;ctx.fillStyle=PAL['cv-bg'];ctx.globalAlpha=.85;ctx.fillRect(gx-lw/2,ly,lw,14*k);ctx.globalAlpha=1;txt(ctx,'Your guess',gx,ly+7*k,{s:12*k,w:700,c:PAL['s4'],a:'center',b:'middle'});
- /* work effects */
- const WL=420,WR=760,WX=v=>WL+v/1.6e6*(WR-WL);let y=top+16;
- txt(ctx,'Did parents leave work?',WL-10,y,{s:13*k,w:700,c:PAL['cv-soft'],b:'middle'});
- if(!sh){hidden(ctx,WL-10,y+90,WR-WL+20,k,'Hidden until you guess');return;}
- y+=24+8*k;ticks(ctx,WX,y,[0,500000,1000000,1500000],k,v=>v?(v/1e6)+'M':'0');
- const sy=y+24+6*k,simOn=p.evid==='sims';
- ctx.globalAlpha=simOn?1:0.35;ctx.fillStyle=PAL['s5'];ctx.globalAlpha*=.3;ctx.fillRect(WX(CTC.lo),sy-8,WX(CTC.hi)-WX(CTC.lo),16);ctx.globalAlpha=simOn?1:0.35;
- [[CTC.lo,'410,000'],[CTC.hi,'1.5M']].forEach(([v,l])=>{ctx.fillStyle=PAL['s5'];ctx.beginPath();ctx.arc(WX(v),sy,7,0,7);ctx.fill();});
- txt(ctx,'Simulations: 410,000 to 1.5M',WL-10,sy+16+4*k,{s:12*k,w:700,c:PAL['s5'],b:'top'});ctx.globalAlpha=1;
- const ay=sy+50+24*k;ctx.globalAlpha=simOn?0.35:1;ctx.fillStyle=PAL['s3'];ctx.beginPath();ctx.arc(WX(0),ay,7,0,7);ctx.fill();
- wrap(ctx,'Some studies of actual 2021 jobs: no significant drop',WL-10,ay+14+4*k,WR-WL+30,{s:12*k,w:700,c:PAL['s3'],b:'top',max:2});ctx.globalAlpha=1;
- const ny=ay+30+40*k;if(ny<440)wrap(ctx,'Monthly payments ran July to December 2021.',WL-10,ny,WR-WL+30,{s:12*k,c:PAL['cv-soft'],b:'top',max:2});}
-
+function vlab(ctx,x,y,s,k,col){ctx.font='700 '+(12*k)+'px '+FONT;const w=ctx.measureText(s).width;if(x+8+w<792)txt(ctx,s,x+8,y,{s:12*k,w:700,c:col||PAL['cv-ink'],b:'middle'});else txt(ctx,s,x-8,y,{s:12*k,w:700,c:'#fff',a:'right',b:'middle'});}
 BioLab.register(SIM);
 })();

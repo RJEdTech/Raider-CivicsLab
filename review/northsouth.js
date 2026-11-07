@@ -21,7 +21,7 @@ northsouth:{
    num:{ans:9.22,tol:0.01,unit:'dollars a day'},
    steps:['The median is where 50% of people are below.','50% is (50 − 49.19) ÷ (52.87 − 49.19) = 0.81 ÷ 3.68 ≈ 0.22 of the way from $9 to $10.','Median ≈ $9 + $0.22 = $9.22, less than half the $21.61 mean.'],
    lab:{set:{view:'lorenz'},look:'Read <b>World median income</b> and <b>World mean income</b>.'},verify:[['wmed',9.22,0.005]]},
-  {id:'elephant',kind:'test',lvl:'honors',
+  {id:'elephant',kind:'test',lvl:'ap',
    q:'From 1988 to 2008, average real income in the 80th to 90th percentile of the world rose from $7,414 to $7,754 a year (2005 PPP). By what percent did it grow?',
    num:{ans:4.6,tol:0.05,unit:'%'},
    steps:['Change = 7,754 − 7,414 = 340.','340 ÷ 7,414 ≈ 0.0459, about 4.6%.','Over the same 20 years, the 50th to 60th percentile grew 71.7%: from $791 to $1,359.']},

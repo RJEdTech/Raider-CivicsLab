@@ -5,7 +5,7 @@ propertytax:{
  uses:[
   'Local school ballot measures. Under TABOR, a district must ask its voters before raising taxes, so mill levy overrides and bonds appear on local ballots in dollars. Converting dollars to mills and to dollars per home and per student tells you what you are voting on.',
   'Renting or buying your first place. Property tax is part of the monthly cost of a home: owners pay it, often through the mortgage payment, and landlords count it as a cost of a rental. The bill math here is how you check the number.',
-  'Families with older relatives. Colorado’s senior exemption takes 50% off the first $200,000 of a home’s actual value for owners 65 or older who have lived there at least 10 years in a row; 304,141 homes got it in 2025. The application goes to the county assessor by July 15.'
+  'Older homeowners. Colorado’s senior exemption takes 50% off the first $200,000 of a home’s actual value for owners 65 or older who have lived there at least 10 years in a row; 304,141 homes got it in 2025. The application goes to the county assessor by July 15.'
  ],
  takeaway:'A property tax bill is three multiplications: value × assessment rate × mills ÷ 1,000. The same mills raise different dollars per student in different districts, and the bill shows only owners. What a fair way to pay for schools looks like is a question for you and your community.'
 }
