@@ -1,0 +1,40 @@
+BioLab.addReview({
+northsouth:{
+ questions:[
+  {id:'per100',kind:'real',lvl:'bio',
+   q:'In 2024, about 847 million of the world’s 8,142 million people lived on less than $3.00 a day. How many is that out of 100 people? Give one decimal place.',
+   num:{ans:10.4,tol:0.05,unit:'people'},
+   steps:['Divide: 847 ÷ 8,142 ≈ 0.104.','Multiply by 100: about 10.4 people out of 100.','In 1990 the same line held 43.4 of 100 people.'],
+   lab:{set:{view:'people',line:'3',year:'2024',show:true,colorby:'income'},look:'Read <b>Real number below the line, per 100 people</b>.'},verify:[['real',10.4,0.01]]},
+  {id:'then',kind:'test',lvl:'bio',
+   q:'In 1990, 43.41% of the world’s 5,299 million people lived below $3.00 a day. About how many people was that?',
+   choices:['About 230 million','About 850 million','About 2.3 billion','About 4.3 billion'],correct:2,
+   steps:['0.4341 × 5,299 million ≈ 2,300 million.','That is about 2.3 billion people.','By 2024 the number had fallen to about 847 million, while the world’s population grew by 2.8 billion.'],
+   lab:{set:{view:'people',line:'3',year:'1990',show:true,colorby:'income'},look:'Read <b>That many people in the world</b>.'},verify:[['people',2300.4,1]]},
+  {id:'born',kind:'real',lvl:'bio',
+   q:'Life expectancy at birth is 54.5 years in Nigeria and 80.8 years in Costa Rica. How many more years can a child born in Costa Rica expect to live?',
+   num:{ans:26.3,tol:0.05,unit:'years'},
+   steps:['80.8 − 54.5 = 26.3 years.','Under-5 deaths: 115.6 per 1,000 in Nigeria against 10.4 in Costa Rica, about 11.1 times as many.'],
+   lab:{set:{view:'born',a:'nga',b:'cri'},look:'Read <b>Life expectancy gap</b> and <b>How many times as likely to die before age 5</b>.'},verify:[['legap',26.3,0.01],['u5ratio',11.12,0.01]]},
+  {id:'median',kind:'test',lvl:'honors',
+   q:'In 2024, 49.19% of the world lived on less than $9 a day and 52.87% on less than $10. Assuming people are spread evenly between those lines, what is the world’s median daily income? Give two decimal places.',
+   num:{ans:9.22,tol:0.01,unit:'dollars a day'},
+   steps:['The median is where 50% of people are below.','50% is (50 − 49.19) ÷ (52.87 − 49.19) = 0.81 ÷ 3.68 ≈ 0.22 of the way from $9 to $10.','Median ≈ $9 + $0.22 = $9.22, less than half the $21.61 mean.'],
+   lab:{set:{view:'lorenz'},look:'Read <b>World median income</b> and <b>World mean income</b>.'},verify:[['wmed',9.22,0.005]]},
+  {id:'elephant',kind:'test',lvl:'honors',
+   q:'From 1988 to 2008, average real income in the 80th to 90th percentile of the world rose from $7,414 to $7,754 a year (2005 PPP). By what percent did it grow?',
+   num:{ans:4.6,tol:0.05,unit:'%'},
+   steps:['Change = 7,754 − 7,414 = 340.','340 ÷ 7,414 ≈ 0.0459, about 4.6%.','Over the same 20 years, the 50th to 60th percentile grew 71.7%: from $791 to $1,359.']},
+  {id:'double',kind:'test',lvl:'ap',
+   q:'An economy grows 7% a year per person. Find the exact doubling time, ln 2 ÷ ln 1.07, to one decimal place, and compare it with the rule of 70.',
+   num:{ans:10.2,tol:0.05,unit:'years'},
+   steps:['ln 2 ≈ 0.6931 and ln 1.07 ≈ 0.0677.','0.6931 ÷ 0.0677 ≈ 10.2 years.','The rule of 70 gives 70 ÷ 7 = 10.0 years: close, and quick to do in your head.'],
+   lab:{set:{view:'growth',ga:7},look:'Read <b>Years for the first country’s income to double</b> and the <b>Rule of 70 estimate</b>.'},verify:[['dbla',10.24,0.01],['r70',10,0.01]]},
+  {id:'close',kind:'real',lvl:'ap',
+   q:'India’s income per person (PPP) is $10,719 and the U.S. figure is $86,170. If India grows 5% a year and the U.S. 1.5%, how many years until the gap closes? Give one decimal place.',
+   num:{ans:61.5,tol:0.1,unit:'years'},
+   steps:['Ratio = 86,170 ÷ 10,719 ≈ 8.04.','Each year India gains by a factor of 1.05 ÷ 1.015 ≈ 1.0345.','Years = ln 8.04 ÷ ln 1.0345 ≈ 2.084 ÷ 0.0339 ≈ 61.5.'],
+   lab:{set:{view:'growth',a:'ind',b:'usa',ga:5,gb:1.5},look:'Read <b>Years for the gap to close</b>.'},verify:[['close',61.48,0.05]]}
+ ]
+}
+});

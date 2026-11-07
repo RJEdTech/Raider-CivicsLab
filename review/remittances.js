@@ -1,0 +1,40 @@
+BioLab.addReview({
+remittances:{
+ questions:[
+  {id:'mto',kind:'real',lvl:'bio',
+   q:'Your cousin sends $250 a month home through a money transfer company. At the 5.40% average for those companies, how many dollars a year go to fees?',
+   num:{ans:162,tol:0.5,unit:'$'},
+   steps:['A year of transfers: 12 × $250 = $3,000.','Fees: 5.40% of $3,000 = 0.054 × $3,000 = $162.00.','So $2,838 arrives. At the 3% UN target the fees would be $90.'],
+   lab:{set:{send:250,chan:'mto',show:true,view:'family'},look:'Read <b>Lost to fees in one year</b>.'},verify:[['fee',162,0.01]]},
+  {id:'arrive',kind:'test',lvl:'bio',
+   q:'A worker sends $400 a month at the 6.36% global average cost. How many dollars arrive over a whole year?',
+   num:{ans:4494.72,tol:0.5,unit:'$'},
+   steps:['Sent in a year: 12 × $400 = $4,800.','Fees: 0.0636 × $4,800 = $305.28.','Arrives: $4,800 − $305.28 = $4,494.72. A shortcut: $4,800 × (1 − 0.0636) = $4,800 × 0.9364.'],
+   lab:{set:{send:400,chan:'avg',show:true,view:'family'},look:'Read <b>Arrives in one year</b>.'},verify:[['arrive',4494.72,0.01],['fee',305.28,0.01]]},
+  {id:'flat',kind:'test',lvl:'honors',
+   q:'A provider charges a $4 flat fee plus a 2% exchange-rate markup. What is the total cost, as a percent, of sending $200 to a family that uses another currency?',
+   choices:['2%','4%','6%','8%'],correct:1,
+   steps:['Flat fee as a share: $4 ÷ $200 = 2%.','Add the markup: 2% + 2% = 4%, or $8 of the $200.','Sent to Ecuador, which uses U.S. dollars, there is no conversion, so the cost would be just the 2% fee.'],
+   lab:{set:{chan:'custom',flat:4,markup:2,send:200,dest:'own',show:true,view:'family'},look:'Read <b>Cost of each transfer</b>, then switch <b>Family lives in</b> to Ecuador.'},verify:[['cost',4,0.001]]},
+  {id:'gtm',kind:'real',lvl:'honors',
+   q:'Guatemala received $21.64 billion in 2024 (World Bank). If all of it cost the 6.36% global average to send, about how many millions of dollars a year would families keep if the cost fell to 3%?',
+   num:{ans:727.3,tol:1,unit:'$ millions'},
+   steps:['The gap is 6.36% − 3% = 3.36 percentage points.','0.0336 × $21.64B ≈ $0.7273B.','That is about $727 million a year. This is an illustration: it applies one average cost to every transfer, and real corridors differ.'],
+   lab:{set:{view:'nation',country:'gtm',chan:'avg',show:true},look:'Read <b>Whole country: kept a year at the 3% target</b>.'},verify:[['natsave',727.26,0.1]]},
+  {id:'gdp',kind:'test',lvl:'ap',
+   q:'Honduras received $9.52 billion in remittances in 2024, equal to 25.7% of its GDP. About how big was Honduras’s GDP, in billions of dollars?',
+   num:{ans:37.0,tol:0.2,unit:'$ billions'},
+   steps:['Share = remittances ÷ GDP, so GDP = remittances ÷ share.','$9.52B ÷ 0.257 ≈ $37.0B.','Compare Mexico: $67.9B ÷ 0.0371 ≈ $1,830B. Mexico gets about 7 times Honduras’s dollars, but they are a far smaller share of its economy.'],
+   lab:{set:{view:'gdp',country:'hnd'},look:'Read <b>GDP implied by those two numbers</b>.'},verify:[['gdp',36.98,0.05],['gdpshare',25.74,0.01]]},
+  {id:'steady',kind:'real',lvl:'ap',
+   q:'From 2006 to 2024, the standard deviation of the yearly % change was 6.6 points for remittances to low- and middle-income countries and 22.5 points for foreign direct investment (World Bank data). What does that mean for a family or a country that relies on each?',
+   choices:['FDI is the steadier flow','Remittances swing far less from year to year, so they are more predictable','The two flows are equally steady','Remittances never fall'],correct:1,
+   steps:['A smaller standard deviation of yearly change means smaller swings.','Remittances fell in 2 of those 19 years (2009 −3.1%, 2016 −2.5%); FDI fell in 10, including −27.4% in 2009 and −30.7% in 2023.','They are steadier, but they do fall sometimes, so “never fall” is wrong.']},
+  {id:'mult',kind:'test',lvl:'ap',
+   q:'A family receives $3,371.04 in a year. As an illustration, suppose 40% of every dollar spent locally is re-spent locally again, round after round. How much local spending results in total?',
+   num:{ans:5618.40,tol:1,unit:'$'},
+   steps:['Total = R + Rm + Rm² + … = R ÷ (1 − m), a geometric series.','$3,371.04 ÷ (1 − 0.4) = $3,371.04 ÷ 0.6 = $5,618.40.','The 40% is an assumption. Money spent on imports, saved or taxed leaves the local round, so real multipliers are uncertain.'],
+   lab:{set:{send:300,chan:'avg',mpc:0.4,show:true,view:'family'},look:'Read <b>Local spending from one year, re-spent</b>.'},verify:[['local',5618.4,0.01]]}
+ ]
+}
+});
