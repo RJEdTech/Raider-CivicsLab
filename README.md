@@ -16,3 +16,7 @@ Small choices, big patterns · A budget is a moral document · Does the math hol
 
 ## Files
 `index.html`, `engine.js`, `biolab.css`, `courses.js`, `sims/*.js`, `practical/*.js`, `review/*.js`. Everything runs in the browser.
+
+## License
+
+© 2026 Jason Beyer, RJ Ed Tech. Licensed under [CC BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/): free to share and adapt for non-commercial use with credit. See [LICENSE](LICENSE).
