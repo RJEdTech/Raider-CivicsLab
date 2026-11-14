@@ -7,6 +7,6 @@ deathpenalty:{
   '<b>Do:</b> turn two counts into a ratio before you compare them: “1 for every 8.2.” <b>Why:</b> a ratio is easier to picture than two large totals, and you can check it by multiplying back.',
   '<b>Do:</b> when someone says a policy “works,” ask whether the evidence compares like with like. <b>Why:</b> the National Research Council (2012) found that comparing murder rates in states with and without the death penalty cannot show whether it deters.'
  ],
- takeaway:'Counts can be turned into ratios and percents you can read, and every count has limits. The numbers inform the death penalty debate; the moral question of whether to use it is one people answer differently.'
+ takeaway:'Counts can be turned into ratios and percents you can read, and every count has limits. The numbers inform the public debate. The Church teaches that the death penalty is inadmissible because it attacks the dignity of the person (Catechism 2267).'
 }
 });

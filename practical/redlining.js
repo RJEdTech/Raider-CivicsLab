@@ -7,6 +7,6 @@ redlining:{
   '<b>Do:</b> when you compare prices from different decades, convert them to the same year’s dollars. <b>Why:</b> most of the 16.3× growth from 1950 to 2000 was inflation; real growth was about 2.7×.',
   '<b>Do:</b> when you are older and buying or renting a home, know that the Fair Housing Act protects you, and how to file a complaint. <b>Why:</b> since 1968 the law has outlawed discrimination in housing and lending, and HUD takes complaints.'
  ],
- takeaway:'A growth factor is new ÷ old, and a head start compounds. A loan denied in 1950 is a gap in wealth today. What, if anything, to do about it is a question people answer differently.'
+ takeaway:'A growth factor is new ÷ old, and a head start compounds. A loan denied in 1950 is a gap in wealth today. The Church calls racism a sin (USCCB, 2018); how best to repair what it left behind is a question Catholics of good will answer differently.'
 }
 });

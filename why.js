@@ -72,7 +72,7 @@ const W={
  sjwar:{hook:'Of every federal dollar, how much goes to defense?',
   problems:['Read the federal budget as shares.','Turn billions into people and things.','Compare defense with other lines.'],
   uses:['Congress votes on the defense budget every year.','The Treasury reports outlays by function every month.','Researchers compare military spending across countries.']},
- sjracism:{hook:'Can a pattern of inequality outlast the rules that made it?',
+ sjracism:{hook:'The Church calls racism a sin. Can a pattern of inequality outlast the rules that made it?',
   problems:['Watch mild preferences sort a town.','See how one choice can start or stop a chain.','Check claims by dividing the right totals.'],
   uses:['Fair housing and lending laws respond to segregation.','Census data show where groups live and own homes.','Fact-checkers rebuild claims from published totals.']},
  compintro:{hook:'Which country is “richer”: the one with more money, or the one where people live longer?',
