@@ -132,3 +132,13 @@ While they wait, a cue above the buttons says what to look at ("Watch the model"
 - **Full lab shows the answer once the student has tried.** In any mode but Guided, step 3 of the gut box ("What the math got you") adds the practical's `answer` and `takeaway` under the comparison, but only after the student has locked a gut answer and asked for the math. Guided already shows them on its end card.
 - **Walkthrough stages.** A tool can build its picture up one step at a time: in `draw`, `const stg=(sim.tour&&sim.tour.on)?(sim.tst||1):99`, and each tour step's `setup` starts with `sim.tst=N`. Gate each layer with `stg>=N`, draw a red outline around the new layer when `stg===N`, and treat 99 (no walkthrough) as "show everything". Number the steps by their place in the full list, so honors and AP steps keep their numbers at every level.
 - **Use it cards** read `<b>Do:</b> … <b>Why:</b> …`: an action a student can take, then the reason, with a named source or date where one exists.
+
+## Final review paths
+A course in `courses.js` can carry `finals:[{t, units, note}]`. Each becomes a path at `#f-<courseId>-<k>` and a button at the top of the course view. `units` lists unit indexes; an entry can be `[index, ['toolId',...]]` to take only some of that unit's tools. A final path keeps only practice steps: Test yourself for Learn it tools, Review questions otherwise, and Free-response practice where it exists. Tools with no questions are left off.
+
+## CivicsLab only: step layers (`stepnote.js`, Nov 14, 2026)
+`stepnote.js` loads after `engine.js`. Wrap a definition with `BioLab.register(BioLab.stepWrap(SIM))`, then give a tour step any of:
+- `stn: {rings:[[x,y,w,h]], card:{x,y,w,title,lines,bars,anchor:'bottom'}, <flag>:true}`: red outlines and a card drawn only while that step is on screen. A tool's `draw` can read a flag with `BioLab.stepFlag(sim,'flag')` to hide or add a layer.
+- `stnSet: {control: value}`: values set before the step's own `setup`.
+- `stnFocus: [x,y,w,h]` or `'none'`: replaces the step's focus box.
+Use it so every walkthrough step draws something new. New tools use the `sim.tst` stage pattern instead.

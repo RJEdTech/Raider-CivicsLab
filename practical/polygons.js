@@ -7,6 +7,6 @@ polygons:{
   '<b>Do:</b> when a credit, insurance or policing model uses zip code, ask what old lines it might carry forward. <b>Why:</b> in <i>Weapons of Math Destruction</i>, Cathy O’Neil shows how models that use zip code can carry old neighborhood lines forward, even when they never ask about race.',
   '<b>Do:</b> look at your lunch table, retreat group or club and ask what variety rule it is running on. <b>Why:</b> any group where people drift toward “enough of my people” runs on this arithmetic.'
  ],
- takeaway:'Mild preferences can add up to strong separation, and the index is just the average of each shape’s share. In this model, dropping the bias did not mix the town back; only the variety rule did.'
+ takeaway:{bio:'The point: small, mild wants, added up across a whole town, can sort it, even though no one chose that. A pattern in a group does not have to come from anyone wanting it.',honors:'Mild preferences can add up to strong separation, and the index is just the average of each shape’s share. In this model, dropping the bias did not mix the town back; only the variety rule did.'}
 }
 });

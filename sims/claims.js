@@ -18,7 +18,7 @@ function cs(sim){const p=sim.p;if(p.claim==='more')return {id:'fair_c',who:'FAIR
  return p.src==='itep'?{id:'itep_t',who:'ITEP',what:'taxes',tot:ITEP.tax,pop:ITEP.pop,v:ppI()}:{id:'fair_t',who:'FAIR',what:'taxes',tot:FAIR.tax,pop:FAIR.pop,v:ppF()};}
 const taxPP=sim=>sim.p.src==='itep'?ppI():ppF(),taxWho=sim=>sim.p.src==='itep'?'ITEP':'FAIR';
 const pend=sim=>!!(BioLab.calcPending&&BioLab.calcPending(sim));
-function shown(sim){if(sim.tour&&sim.tour.on)return true;if(sim.p.reveal)return true;const S=sim.gutS;return !!(S&&S.g&&!pend(sim));}
+function shown(sim){if(BioLab.stepFlag&&BioLab.stepFlag(sim,'hide'))return false;if(sim.tour&&sim.tour.on)return true;if(sim.p.reveal)return true;const S=sim.gutS;return !!(S&&S.g&&!pend(sim));}
 /* The first Big-picture challenge asks for FAIR's costs per person. Until it is answered, that one rate stays hidden,
    unless the student already worked it out as their own "Your turn" case, or asked to see the rates. */
 const curCh=sim=>{if(!sim.ch)return null;const L=(sim.def.challenges||[]).filter(c=>atLeast(c.lvl||'bio'));return L[sim.ch.idx]||null;};
@@ -97,14 +97,15 @@ const SIM={
    if(mine){ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2.5;rr(ctx,X(0)-3,yc-bh/2-3,RX-X(0)+6,bh+6,6);ctx.stroke();}
    /* the division, under the bar */
    const dl=sh?(big?`${bil(r.tot)} ÷ ${mil(r.pop)} = ${$(r.v)}`:divLine(r)):(big?`${bil(r.tot)} ÷ ${mil(r.pop)} = ?`:`${bil(r.tot)} ÷ ${mil(r.pop)} people = ?`);
-   txt(ctx,dl,X(0)+6,yc+bh/2+10*k,{s:12*k,w:mine?700:400,c:mine?PAL['cv-ink']:PAL['cv-soft'],b:'middle'});});
+   txt(ctx,dl,X(0)+6,yc+bh/2+10*k,{s:12*k,w:mine?700:400,c:mine?PAL['cv-ink']:PAL['cv-soft'],b:'middle'});
+   if(sh&&BioLab.stepFlag(sim,'divring')){ctx.font=(mine?'700 ':'400 ')+(12*k)+'px '+FONT;const tw=ctx.measureText(dl).width;ctx.strokeStyle=PAL['s1'];ctx.lineWidth=2.5;rr(ctx,X(0)+1,yc+bh/2+1,tw+12,18*k,5);ctx.stroke();}});
   /* footer: the formula */
   let fy=H-foot+12*k;
   if(sh&&p.claim==='more'&&!costOK(sim))txt(ctx,'Rate = total ÷ people. Work out FAIR’s costs per person in the question below.',20,fy,{s:13*k,w:700,c:PAL['cv-ink'],b:'middle'});
   else if(sh){const line=p.claim==='none'?`Rate = total ÷ people. Lowest estimate: ${$(ppF())} a person, not $0.`:(big?`Costs ${$(cpF())} vs. taxes ${$(taxPP(sim))} a person (${taxWho(sim)})`:`Rate = total ÷ people. FAIR’s costs, ${$(cpF())} a person, vs. ${taxWho(sim)}’s taxes, ${$(taxPP(sim))}.`);
    txt(ctx,line,20,fy,{s:13*k,w:700,c:PAL['cv-ink'],b:'middle'});
    if(atLeast('honors')){fy+=20*k;txt(ctx,`Total = rate × people: ${$(ppI())} × ${f1(p.pop)} million = ${bil(+(ppI()*p.pop/1e3).toFixed(1))}${big?'':' (ITEP’s rate)'}`,20,fy,{s:12*k,c:PAL['cv-soft'],b:'middle'});}}
-  else txt(ctx,S&&S.g?'Work out the rate to see the bars.':'Lock in your gut to see the rates.',20,fy,{s:13*k,c:PAL['cv-soft'],b:'middle'});},
+  else txt(ctx,BioLab.stepFlag(sim,'hide')?'Two totals, two headcounts. Next step: divide each total by its own headcount.':S&&S.g?'Work out the rate to see the bars.':'Lock in your gut to see the rates.',20,fy,{s:13*k,c:PAL['cv-soft'],b:'middle'});},
  narrate(sim){const p=sim.p,C=cs(sim);
   if(!shown(sim)){if(p.claim==='none')return `The claim says <b>$0</b>. ${C.who} publishes a total of ${bil(C.tot)} in taxes and counts ${mil(C.pop)} people. <b>How many dollars is that per person?</b> Your gut right now: ${$(p.guess)}.`;
    return `To test this claim, put taxes and costs on the same footing: <b>dollars per person</b>. FAIR counts ${bil(FAIR.cost)} in costs for ${mil(FAIR.pop)} people. Your gut right now: ${$(p.guess)} a person.`;}
@@ -157,12 +158,12 @@ const SIM={
  ],
  tour:[
   {title:'A claim is a number',text:'“Undocumented immigrants pay no taxes” is a claim about a number: $0. A number can be checked. Two groups on opposite sides of the immigration debate published estimates.',focus:[0,0,800,90],pause:true,setup:sim=>BioLab.setValues(sim,{claim:'none',src:'fair',pop:15.5})},
-  {title:'Two totals, two headcounts',text:'FAIR, which advocates lower immigration, estimates $31B in taxes and counts 15.5 million people. ITEP, which leans left, estimates $96.7B and counts 10.9 million. The totals cover different numbers of people.',pause:true},
-  {title:'Divide by the right people',text:'Divide each total by its own headcount. FAIR: $31B ÷ 15.5 million = $2,000 a person. ITEP: $96.7B ÷ 10.9 million ≈ $8,872. Both are far above the claim’s $0.',pause:true},
+  {stn:{hide:true},title:'Two totals, two headcounts',text:'FAIR, which advocates lower immigration, estimates $31B in taxes and counts 15.5 million people. ITEP, which leans left, estimates $96.7B and counts 10.9 million. The totals cover different numbers of people.',pause:true},
+  {stn:{divring:true},title:'Divide by the right people',text:'Divide each total by its own headcount. FAIR: $31B ÷ 15.5 million = $2,000 a person. ITEP: $96.7B ÷ 10.9 million ≈ $8,872. Both are far above the claim’s $0.',pause:true},
   {title:'The other claim',text:'“Undocumented immigrants pay more in taxes than they cost” is checked the same way. FAIR’s costs: $182B ÷ 15.5 million ≈ $11,742 a person, above both tax rates.',pause:true,setup:sim=>BioLab.setValues(sim,{claim:'more'})},
-  {title:'What the top counts',text:'FAIR’s costs include school for U.S.-born children, who are citizens. CBO, looking only at the federal budget, finds the 2021 to 2026 surge lowers deficits about $0.9T over 2024 to 2034. Same people, different budgets.',pause:true},
+  {stn:{card:{x:588,y:192,w:204,title:'Same people, different budgets',lines:['FAIR’s $182B: federal, state and local costs, including school for U.S.-born children (citizens).','CBO, federal budget only: the 2021–26 surge cuts deficits about $0.9T over 2024–2034.']}},title:'What the top counts',text:'FAIR’s costs include school for U.S.-born children, who are citizens. CBO, looking only at the federal budget, finds the 2021 to 2026 surge lowers deficits about $0.9T over 2024 to 2034. Same people, different budgets.',pause:true},
   {lvl:'honors',title:'Headcount or method?',text:'Total = rate × people. At ITEP’s rate, FAIR’s 15.5 million people would pay about $137.5B. A bigger headcount widens the gap with $31B, so the sources differ mainly in method.',pause:true,setup:sim=>BioLab.setValues(sim,{claim:'none',src:'itep',pop:15.5})},
-  {lvl:'ap',title:'One choice, six times the answer',text:'The National Academies put the 2013 net cost of all first-generation immigrants at about $279B with an average share of public goods, or $43B counting only the added cost: 279 ÷ 43 ≈ 6.5.',pause:true}
+  {stn:{card:{x:588,y:140,w:204,title:'National Academies, 2013',lines:['Same people, same year, two ways to share the cost of roads, defense and other public goods.'],bars:[{l:'Average share',v:279,max:279,t:'$279B',c:'#c8102e'},{l:'Only the added cost',v:43,max:279,t:'$43B'}]}},lvl:'ap',title:'One choice, six times the answer',text:'The National Academies put the 2013 net cost of all first-generation immigrants at about $279B with an average share of public goods, or $43B counting only the added cost: 279 ÷ 43 ≈ 6.5.',pause:true}
  ],
  onTourExit(sim){BioLab.setValues(sim,{claim:'none',src:'fair'});},
  lab:{bio:'<p><b>Question:</b> Does each claim hold up when you divide by the right people?</p><ol><li>Lock in your gut, then work out the rate for the claim on screen.</li><li>Press <b>Check the other claim</b> and do it again.</li><li>Record each total, each headcount and each rate in a table.</li></ol><p>Write one sentence for each claim: what does the per-person rate show, and what would you still want to know?</p>',
@@ -188,5 +189,5 @@ function wrap(ctx,s,x,y,w,o){o=o||{};const sz=o.s||13;ctx.font=(o.w||400)+' '+sz
  words.forEach(wd=>{const t=line?line+' '+wd:wd;if(ctx.measureText(t).width>w&&line){lines.push(line);line=wd;}else line=t;});if(line)lines.push(line);
  const lh=o.lh||sz*1.25,L=lines.slice(0,o.max||99);L.forEach((l,i)=>txt(ctx,l,x,y+i*lh,o));return L.length*lh;}
 function vlab(ctx,x,y,s,k,col){ctx.font='700 '+(12*k)+'px '+FONT;const w=ctx.measureText(s).width;if(x+8+w<792)txt(ctx,s,x+8,y,{s:12*k,w:700,c:col||PAL['cv-ink'],b:'middle'});else txt(ctx,s,x-8,y,{s:12*k,w:700,c:'#fff',a:'right',b:'middle'});}
-BioLab.register(SIM);
+BioLab.register(BioLab.stepWrap(SIM));
 })();

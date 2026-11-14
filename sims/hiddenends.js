@@ -125,7 +125,7 @@ function drawRoom(sim,ctx,k){const a=T0(sim),sh=shown(sim),G=GS(sim),ph=k>1.4,N=
  if(sh&&!ph&&y<base-10)wrap(ctx,`${belowNewMean(sim).toLocaleString('en-US')} of ${(N+1).toLocaleString('en-US')} households now earn less than the mean.`,px,y+4,pw,16*k,{s:12*k,c:PAL['cv-soft']});
  if(!ph)txt(ctx,'Incomes are an illustration shaped like a real town: median $87,460.',24,H-14,{s:12*k,c:PAL['cv-soft']});}
 
-function drawSurvey(sim,ctx,k){const a=T0(sim),r=respondents(sim),T=cap(sim),ph=k>1.4,fit=atLeast('ap')?paretoFit(sim):null,N=a.length;
+function drawSurvey(sim,ctx,k){const a=T0(sim),r=respondents(sim),T=cap(sim),ph=k>1.4,fit=atLeast('ap')&&!BioLab.stepFlag(sim,'noFit')?paretoFit(sim):null,N=a.length,fRing=BioLab.stepFlag(sim,'fitRing');
  txt(ctx,'What the survey file shows',24,30,{s:15*k,w:700});
  if(!ph)txt(ctx,'Share of households above each income, on log scales',24,30+18*k,{s:12*k,c:PAL['cv-soft']});
  const L=70,Rr=470,top=Math.round(66+20*k),bot=H-60,x0=4.5,x1=7,y0=-3.3,y1=0;
@@ -142,7 +142,8 @@ function drawSurvey(sim,ctx,k){const a=T0(sim),r=respondents(sim),T=cap(sim),ph=
   if(!ph)txt(ctx,`${nCapped(sim)} recorded at the cap`,X(T)+5,top+10+16*k,{s:12*k,c:PAL['s1']});}
  if(fit&&fit.a&&!ph){const Lc=T/2,sT=fit.nT/r.length;ctx.strokeStyle=PAL['s4'];ctx.lineWidth=2.5;ctx.setLineDash([8,5]);ctx.beginPath();
   const sx=v=>sT*Math.pow(v/T,-fit.a);let first=true;for(let v=Lc;v<=1e7;v*=1.08){const s=sx(v);if(s<10**y0)break;const px=X(v),py=Y(s);if(first){ctx.moveTo(px,py);first=false;}else ctx.lineTo(px,py);}ctx.stroke();ctx.setLineDash([]);
-  txt(ctx,'Pareto fit, α ≈ '+fit.a.toFixed(2),X(T)+5,top+10+(ph?16:32)*k,{s:12*k,w:700,c:PAL['s4']});}
+  txt(ctx,'Pareto fit, α ≈ '+fit.a.toFixed(2),X(T)+5,top+10+(ph?16:32)*k,{s:12*k,w:700,c:PAL['s4']});
+  if(fRing){ctx.strokeStyle=PAL['s1'];ctx.lineWidth=3;rr(ctx,X(T)+1,top+(ph?16:32)*k,140*k,20*k,6);ctx.stroke();}}
  if(!ph){legendDot(ctx,L,H-22,PAL['cv-soft'],'true incomes',k);legendDot(ctx,L+120*k,H-22,PAL['s2'],'what the file shows',k);}
  /* Lorenz */
  const LX=530,LY=Math.round(top+6+40*k),fx=fit&&fit.fix,s=Math.max(120,Math.min(230,H-LY-(fx?70:54)*k-6)),LX2=v=>LX+v*s,LY2=v=>LY+s-v*s;
@@ -153,7 +154,8 @@ function drawSurvey(sim,ctx,k){const a=T0(sim),r=respondents(sim),T=cap(sim),ph=
   const st=Math.max(1,Math.floor(b.length/200));b.forEach((x,i)=>{c+=x;if(i%st===0||i===b.length-1)ctx.lineTo(LX2((i+1)/b.length),LY2(c/Tt));});ctx.stroke();ctx.setLineDash([]);};
  lor(a,PAL['cv-ink'],true);lor(m,PAL['s2'],false);
  const tm=mean(a),mm2=mean(m);txt(ctx,`Mean: true ${usd(tm)}`,LX,LY+s+20*k,{s:12*k,w:700});txt(ctx,`File shows ${usd(mm2)}`,LX,LY+s+37*k,{s:12*k,w:700,c:PAL['s2']});
- if(fx)txt(ctx,`Pareto fix ${usd(fit.fix)}`,LX,LY+s+54*k,{s:12*k,w:700,c:PAL['s4']});}
+ if(fx)txt(ctx,`Pareto fix ${usd(fit.fix)}`,LX,LY+s+54*k,{s:12*k,w:700,c:PAL['s4']});
+ if(fx&&fRing){ctx.strokeStyle=PAL['s1'];ctx.lineWidth=3;rr(ctx,LX-5,LY+s+44*k,170*k,20*k,6);ctx.stroke();}}
 function legendDot(ctx,x,y,col,lab,k){ctx.fillStyle=col;ctx.fillRect(x,y-5,8,8);txt(ctx,lab,x+13,y,{s:12*k,b:'middle',c:PAL['cv-soft']});}
 
 function drawTax(sim,ctx,k){const ph=k>1.4,ap=atLeast('ap');
@@ -170,11 +172,12 @@ function drawTax(sim,ctx,k){const ph=k>1.4,ap=atLeast('ap');
  /* rate axis with published estimates */
  if(sim.p.tunr<0)txt(ctx,`Stock fell ${mm(-sim.p.tunr)}: subtract it`,L+Wd,y2-10,{s:12*k,w:700,a:'right',c:PAL['s1']});
  const ay=y2+26+Math.round(110*k),ax0=60,ax1=740,RX=v=>ax0+clamp(v,0,40)/40*(ax1-ax0);
- txt(ctx,ph?'Rates':'Published estimates of federal income tax rates at the very top',24,ay-62*k,{s:13*k,w:700});
+ txt(ctx,ph?'Rates':BioLab.stepFlag(sim,'noPub')?'The family’s federal income tax rate, counted two ways':'Published estimates of federal income tax rates at the very top',24,ay-62*k,{s:13*k,w:700});
  ctx.strokeStyle=PAL['cv-ink'];ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax0,ay);ctx.lineTo(ax1,ay);ctx.stroke();
  [0,10,20,30,40].forEach(v=>{ctx.beginPath();ctx.moveTo(RX(v),ay-4);ctx.lineTo(RX(v),ay+4);ctx.stroke();txt(ctx,v+'%',RX(v),ay+17*k,{s:12*k,a:'center',c:PAL['cv-soft']});});
  const mark=(v,lab,row,col,up)=>{const x=RX(v);ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,ay,5,0,7);ctx.fill();const yy=up?ay-10-row*15*k:ay+(30+row*15)*k;if(lab)txt(ctx,lab,x,yy,{s:12*k,w:700,a:x<ax0+60?'left':x>ax1-60?'right':'center',c:col});};
- mark(3.4,ph?'3.4%':'3.4% ProPublica',2,PAL['s4'],true);mark(8.2,ph?'8.2%':'8.2% CEA/OMB',1,PAL['s4'],true);mark(14,ph?'14%':'14% typical household',0,PAL['cv-soft'],true);
+ if(!BioLab.stepFlag(sim,'noPub')){mark(3.4,ph?'3.4%':'3.4% ProPublica',2,PAL['s4'],true);mark(8.2,ph?'8.2%':'8.2% CEA/OMB',1,PAL['s4'],true);mark(14,ph?'14%':'14% typical household',0,PAL['cv-soft'],true);}
+ if(BioLab.stepFlag(sim,'pubRing')){ctx.strokeStyle=PAL['s1'];ctx.lineWidth=3;rr(ctx,RX(0)+8,ay-12-3*15*k,RX(16)-RX(0),3*15*k+20,7);ctx.stroke();}
  const r1=rate1(sim),r2=rate2(sim);if(r1!=null)mark(r1,ph?'':'return '+pc(r1),0,PAL['rj'],false);if(r2!=null)mark(r2,ph?'':'economic '+pc(r2),1,PAL['rj'],false);
  if(ap&&!ph){let y=H-14;const notes=[];if(sim.p.borrow>0)notes.push(`Borrowed and spent ${mm(sim.p.borrow)} against stock: taxable income from it $0.`);
   if(sim.p.heirs&&sim.p.tunr>0)notes.push(`Heirs inherit with a step-up in basis: ${mm(Math.max(0,sim.p.tunr))} of gain never taxed as income (${mm(TAXG*Math.max(0,sim.p.tunr))} at 23.8%).`);
@@ -338,12 +341,12 @@ const SIM={
  tour:[
   {title:'A town, sorted by income',text:'Here are 1,000 households, by income this year. Most are near the middle: the median, the household halfway up the line, earns $87,460. A few at the top earn far more, so the mean (average) is higher: $129,785.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'room',show:false,rich:50,n:'1000',alpha:2}),focus:[0,40,500,460]},
   {title:'One household moves in',text:'A household with $50 million of income this year arrives. The mean is total income ÷ households: it rises by ($50,000,000 − $129,785) ÷ 1,001 ≈ $49,820. The median only moves one household up the line: about $88.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'room',show:true})},
-  {title:'Two ways to count income',text:'A very wealthy family reports $10 million on its tax return ($2M of wages, $8M of gains from stock it sold) and pays $2.64 million: 26.4%. Its other stock rose $90 million, but unsold gains are not taxable income. Counted as income, they drop the rate to 2.64%.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'tax',twage:2,treal:8,tunr:90,corp:false,borrow:0,heirs:false})},
-  {title:'Published estimates',text:'The White House Council of Economic Advisers and OMB (2021) estimated 8.2% for the 400 wealthiest families, 2010 to 2018, counting unsold gains. ProPublica (2021) found 3.4% for the 25 wealthiest, 2014 to 2018. Critics answer that paper gains can vanish and that corporate taxes are left out.',pause:true},
-  {lvl:'honors',title:'The survey caps the top',text:'Public survey files protect privacy by capping or swapping the highest incomes. With a $458,000 cap, 28 households are recorded at the cap. The file’s mean falls by $11,505 and its Gini from 0.468 to 0.417.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'survey',tcap:'458000',nonresp:0})},
-  {lvl:'ap',title:'Fit the tail',text:'On log scales, a Pareto tail is a straight line. Count 114 households above $229,000 and 28 above $458,000: α = ln(114 ÷ 28) ÷ ln 2 ≈ 2.03. The fitted mean above the cap, α ÷ (α − 1) × $458,000, brings the mean back to within about $1,000 of the truth.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'survey',tcap:'458000',nonresp:0})},
+  {stn:{noPub:true},title:'Two ways to count income',text:'A very wealthy family reports $10 million on its tax return ($2M of wages, $8M of gains from stock it sold) and pays $2.64 million: 26.4%. Its other stock rose $90 million, but unsold gains are not taxable income. Counted as income, they drop the rate to 2.64%.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'tax',twage:2,treal:8,tunr:90,corp:false,borrow:0,heirs:false})},
+  {stn:{pubRing:true},title:'Published estimates',text:'The White House Council of Economic Advisers and OMB (2021) estimated 8.2% for the 400 wealthiest families, 2010 to 2018, counting unsold gains. ProPublica (2021) found 3.4% for the 25 wealthiest, 2014 to 2018. Critics answer that paper gains can vanish and that corporate taxes are left out.',pause:true},
+  {stn:{noFit:true},lvl:'honors',title:'The survey caps the top',text:'Public survey files protect privacy by capping or swapping the highest incomes. With a $458,000 cap, 28 households are recorded at the cap. The file’s mean falls by $11,505 and its Gini from 0.468 to 0.417.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'survey',tcap:'458000',nonresp:0})},
+  {stn:{fitRing:true},lvl:'ap',title:'Fit the tail',text:'On log scales, a Pareto tail is a straight line. Count 114 households above $229,000 and 28 above $458,000: α = ln(114 ÷ 28) ÷ ln 2 ≈ 2.03. The fitted mean above the cap, α ÷ (α − 1) × $458,000, brings the mean back to within about $1,000 of the truth.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'survey',tcap:'458000',nonresp:0})},
   {title:'The other end: two jobs',text:'A parent works 28 hours at $14 and 14 hours at $12, 50 weeks a year: 2,100 hours, more than a full-time year. That pays $28,000, $3,200 below the $31,200 poverty line for a family of four. The weekly hours swing too, which the yearly number hides.',pause:true,setup:sim=>BioLab.setValues(sim,{view:'work',hh:'four',w1:14,h1:28,w2:12,h2:14,wks:50,vary:30,cash:false})},
-  {title:'What the numbers hide',text:'Below the picture, read what each number here leaves out. Both ends of the distribution are hard to see, for opposite reasons. Which one would you measure better first, and how?',pause:true}
+  {stn:{card:{x:440,y:62,w:350,title:'Both ends are hard to see',lines:['Top: survey files cap the highest incomes, and unsold gains never reach a tax return.','Bottom: a yearly total hides weeks like the $363 one, and people without a steady address are often missed.']}},title:'What the numbers hide',text:'Below the picture, read what each number here leaves out. Both ends of the distribution are hard to see, for opposite reasons. Which one would you measure better first, and how?',pause:true}
  ],
  lab:{bio:'<p><b>Question:</b> Which number tells you more about a typical household: the mean or the median?</p><ol><li>In <b>A rich household moves in</b>, turn on <b>Show the new mean and median</b>. Record a trial.</li><li>Switch to <b>Two tax rates</b>. Record both rates.</li><li>Switch to <b>Two jobs, still poor</b>. Change the hours and pay until the parent reaches the poverty line. Record what it took.</li></ol><p>Write two sentences: which number in this tool surprised you most, and what does it hide?</p>',
   honors:'<p><b>Question:</b> How much does a top code change what a survey shows?</p><ol><li>In <b>What the survey misses</b>, try each top code. Record the measured mean, the Gini and how many households are capped.</li><li>In <b>A rich household moves in</b>, set the newcomer to $1M, $10M, $100M and $1,000M. Record the rise in the mean and the median.</li><li>In <b>Two jobs, still poor</b>, raise the week-to-week change in hours from 0% to 60%. Record the lowest week’s pay.</li></ol><p>Explain why a yearly or average number can hide both the very top and the very bottom.</p>',
@@ -381,5 +384,5 @@ const SIM={
 <p><b>Quotations.</b> <i>Catechism of the Catholic Church</i>, no. 2402 (<a href="https://www.vatican.va/archive/ENG0015/__P8A.HTM" target="_blank" rel="noopener">vatican.va</a>); John Paul II, <i>Laborem Exercens</i> (1981), no. 6 (<a href="https://www.vatican.va/content/john-paul-ii/en/encyclicals/documents/hf_jp-ii_enc_14091981_laborem-exercens.html" target="_blank" rel="noopener">vatican.va</a>).</p>
 <p><b>No definition here is scored.</b> Whether unsold gains should count as income, and what to do about either end of the distribution, are questions of values. The tool checks the math, not the answer.</p>`
 };
-BioLab.register(SIM);
+BioLab.register(BioLab.stepWrap(SIM));
 })();

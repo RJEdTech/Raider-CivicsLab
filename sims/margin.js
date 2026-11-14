@@ -132,7 +132,7 @@ const SIM={
   {title:'Multiply',text:'0.4 points is 0.4 ÷ 100 = 0.004. Then 0.004 × 6,000,000 = 24,000 extra votes.',pause:true,focus:[10,0,380,250],setup:sim=>{sim.st.peek=1;}},
   {title:'Against a real margin',text:'The 2000 presidential race in Florida was decided by a certified margin of 537 votes. Each red square is one of those margins. 24,000 votes fill about 44.7 of them.',pause:true,focus:[400,0,400,450],setup:sim=>{sim.st.peek=1;}},
   {title:'61 million people',text:'In 2010, researchers showed about 61 million Facebook users a get-out-the-vote message. Here, a 0.6-point nudge across 61 million gives 366,000 votes. The researchers’ own estimate was about 340,000 extra votes: about 633 Florida margins.',pause:true,setup:sim=>{BioLab.setValues(sim,{pop:61000000,effect:0.6});sim.st.peek=1;}},
-  {title:'A click is not a vote',text:'About 20% of users who saw friends’ “I Voted” photos clicked the button, against about 18% without friends. But a click is a proxy. To count real votes, researchers matched users to public voting records.',pause:true,setup:sim=>{sim.st.peek=1;}},
+  {stn:{card:{x:20,y:292,w:360,title:'A click is not a vote',lines:['To count real votes, researchers matched users to public voting records.'],bars:[{l:'Saw friends’ “I Voted” photos',v:20,max:25,t:'20%'},{l:'No friends shown',v:18,max:25,t:'18%'}]}},title:'A click is not a vote',text:'About 20% of users who saw friends’ “I Voted” photos clicked the button, against about 18% without friends. But a click is a proxy. To count real votes, researchers matched users to public voting records.',pause:true,setup:sim=>{sim.st.peek=1;}},
   {lvl:'honors',title:'Which way they lean',text:'If the 24,000 extra voters split 50/50, the margin does not move at all. At 52% to 48%, it moves 960 votes: more than 537. A nudge matters to a result only if it reaches one side more.',pause:true,setup:sim=>{BioLab.setValues(sim,{pop:6000000,effect:0.4,lean:52});sim.st.peek=1;}},
   {lvl:'ap',title:'Significant is not the same as big',text:'With 1 million people per group, an 18.0% vs 18.4% difference gives z ≈ 7.3: almost surely real. It is still only 4 people in 1,000. Ask how big an effect is, and what it adds up to, not only whether it is significant.',pause:true,setup:sim=>{BioLab.setValues(sim,{pop:6000000,effect:0.4,lean:50,n:1000000});sim.st.peek=1;}}
  ],
@@ -153,5 +153,5 @@ const SIM={
   '<p><b>What this number hides.</b> “24,000 extra votes” is one total. It hides which way those voters lean (split evenly, the margin does not move), who was nudged and who was not, and whether the thing counted was a vote or only a click. The 537 is also one total: millions of votes on each side.</p>'+
   '<p><b>Catholic social teaching.</b> The U.S. bishops’ <i>Forming Consciences for Faithful Citizenship</i> calls participation in political life a moral obligation. Question for discussion: what do small acts add up to across a whole community, and who should be able to see who was nudged?</p>'
 };
-BioLab.register(SIM);
+BioLab.register(BioLab.stepWrap(SIM));
 })();
