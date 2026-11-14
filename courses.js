@@ -1,6 +1,8 @@
 /* Raider CivicsLab: topic sections, organized by Catholic social teaching rather than by party.
-   Course paths follow RJ's Canvas sequences for US Government, AP US Government, AP Macroeconomics,
-   AP Microeconomics and Discipleship & Social Justice (pulled Nov 7, 2026). Each unit lists the tools
+   Course paths follow RJ's Canvas sequences for US Government, AP US Government, AP Macroeconomics and
+   AP Microeconomics (pulled Nov 7, 2026), and Sociology, Social Justice (dual enrollment), AP Comparative
+   Government, Advocacy and Social Change, Black History and Junior Theology (pulled Nov 13, 2026).
+   Discipleship & Social Justice is no longer offered; Social Justice replaced it. Each unit lists the tools
    whose math that unit uses. */
 BioLab.COURSES = [
  {id:'usgov',name:'US Government',blurb:'United States Government, in the order your class covers it. Each unit lists the tools that put numbers on what you are studying.',
@@ -29,11 +31,49 @@ BioLab.COURSES = [
   units:[
    {n:'Unit 6',t:'Market Failure and the Role of Government',ids:['northsouth','hiddenends','taxhistory','lifeworth','propertytax','foodmath'],note:'Income inequality (Lorenz curve and Gini), progressive taxes, cost-benefit analysis, public goods like schools, and food waste as an externality (the emissions no one pays for).'}
   ]},
- {id:'dsj',name:'Discipleship & Social Justice',blurb:'Discipleship & Social Justice. These tools add the numbers to issues the course studies; the course brings the questions.',
+ {id:'soc',name:'Sociology',blurb:'Sociology, in the order your class covers it. These tools put numbers on what sociologists study: who gets counted, how groups sort themselves, and what money and class do.',
   units:[
-   {n:'Issue',t:'Poverty and the unhoused',ids:['hiddenends','foodmath','northsouth','measurewealth'],note:'Who official statistics count well and who they miss, where surplus food goes, and what “wealth” measures.'},
-   {n:'Issue',t:'Immigration',ids:['remittances','northsouth'],note:'What families sending money home pay in fees, and how far apart incomes are by birthplace.'},
-   {n:'Issue',t:'“Collateral damage”: Flint water',ids:['lifeworth'],note:'How agencies put numbers on safety rules, and what those numbers leave out.'}
+   {n:'Unit 1',t:'The sociological perspective and culture',ids:['northsouth','pollmiss'],note:'Your life elsewhere: the world shrunk to 100 people. Then how sociologists count people, and why a survey can miss even with thousands of answers.'},
+   {n:'Unit 2',t:'Socialization and social interaction',ids:['tipping','polygons'],note:'Are we free? How one person’s choice depends on how many others have already chosen, and how mild preferences add up to patterns nobody chose.'},
+   {n:'Unit 3',t:'Social stratification and social class',ids:['hiddenends','measurewealth','taxhistory','propertytax','whatmoved'],note:'Mean vs. median income, who the poverty numbers miss, wealth vs. income, how tax rules changed for each class, how property tax ties school money to where you live, and what moved child food insecurity.'},
+   {n:'Unit 4',t:'Gender and race',ids:['polygons','districts'],note:'How neighborhoods can sort even when no one wants them sorted, and how the lines drawn around neighborhoods change who gets represented.'},
+   {n:'Unit 5',t:'Deviance, crime and social control',ids:['claims','whatmoved'],note:'Crime statistics are totals divided by people: check claims by dividing, then test what actually moves a number before believing an explanation.'}
+  ]},
+ {id:'socjust',name:'Social Justice',blurb:'Social Justice (dual enrollment). These tools add the numbers to issues the course studies; the course brings the questions.',
+  units:[
+   {n:'Issue',t:'Poverty, wealth and the universal destination of goods',ids:['northsouth','measurewealth','remittances'],note:'How far apart lives are by birthplace, what counts as wealth, and what families in El Salvador and elsewhere receive when relatives send money home.'},
+   {n:'Issue',t:'Life and medical ethics',ids:['lifeworth'],note:'How government agencies put a number on a life when they weigh a safety rule, and what that number leaves out.'},
+   {n:'Issue',t:'Homelessness',ids:['hiddenends','foodmath'],note:'Why people without a home are among the hardest to count, and where 100 pounds of surplus food ends up.'},
+   {n:'Issue',t:'Just war and military spending',ids:['budget'],note:'Rebuild the real federal budget, defense included, and see each line in people and things.'},
+   {n:'Issue',t:'Racism, immigration and other issues',ids:['polygons','tipping','claims'],note:'How mild preferences can still sort a town, how one choice can start or stop a chain, and two opposite claims about immigrants and taxes checked with the same math.'}
+  ]},
+ {id:'apcomp',name:'AP Comparative Government',blurb:'AP Comparative Government and Politics, country by country in the order your class covers them. Good practice for the quantitative questions on the exam.',
+  units:[
+   {n:'Unit 1',t:'Introduction, indicators and Mexico',ids:['measurewealth','northsouth','hiddenends','remittances'],note:'GDP per person, HDI and the Gini coefficient: what each indicator counts and misses. Mexico is one of the largest receivers of money sent home.'},
+   {n:'Unit 2',t:'The United Kingdom',ids:['districts','margin','pollmiss'],note:'Single-member districts and winner-take-all seats, how close a vote can be, and why the polls missed the UK’s 2015 general election.'},
+   {n:'Unit 3',t:'Russia',ids:['turnout','pollmiss'],note:'Turnout depends on what you divide by, and a poll is only as good as who answers it.'},
+   {n:'Unit 4',t:'Nigeria',ids:['northsouth','measurewealth','apportion'],note:'Where Nigeria sits in a world of 100 people, ranking countries by money or by health and schooling, and dividing seats among states by population.'},
+   {n:'Unit 5',t:'China and Iran',ids:['measurewealth','turnout','electoral'],note:'Growth and development indicators, then elections compared: who can vote, who does, and how votes become an office.'}
+  ]},
+ {id:'advocacy',name:'Advocacy and Social Change',blurb:'Advocacy and Social Change. Good advocacy needs the numbers right: these tools check the math behind the issues you will speak about.',
+  units:[
+   {n:'Topic',t:'Dorothy Day and the works of mercy',ids:['hiddenends','foodmath'],note:'Who official counts miss, and where surplus food goes.'},
+   {n:'Topic',t:'Immigration',ids:['claims','remittances','northsouth'],note:'Two opposite claims about immigrants and taxes, checked with one method; the cost of sending money home; and what a child can expect depending on where she is born.'},
+   {n:'Topic',t:'Care for creation and climate in Colorado',ids:['foodmath','propertytax','tabor'],note:'Wasted food and its emissions, plus how Colorado raises and limits the money behind any state plan.'},
+   {n:'Topic',t:'Advocacy Day: making the case',ids:['budget','margin','tipping','turnout'],note:'Where federal money goes, how few votes can decide a race, how one person can tip a group, and who actually votes.'}
+  ]},
+ {id:'blackhist',name:'Black History',blurb:'Black History, in the order your class covers it. These tools put numbers on maps, votes and money the course studies.',
+  units:[
+   {n:'Unit 1',t:'Jim Crow, covenants and redlining',ids:['polygons','propertytax','turnout'],note:'How sorting can persist and spread, how home values feed school money through property tax, and who votes, measured several ways.'},
+   {n:'Unit 2',t:'Harlem, Denver gentrification and Black members of Congress',ids:['propertytax','districts','apportion'],note:'Rising home values and the tax bill that follows, and how districts and seats are drawn and divided.'},
+   {n:'Unit 3',t:'Elections: 2004 and 2008',ids:['electoral','turnout','margin','pollmiss'],note:'The math of a presidential election: the Electoral College, turnout, close margins and polls.'}
+  ]},
+ {id:'jrtheo',name:'Junior Theology',blurb:'Junior Theology. These tools give the units’ questions something concrete to test; the course brings the questions.',
+  units:[
+   {n:'Unit 1',t:'Epistemology: Questioning (TRUTH?)',ids:['claims','whatmoved','pollmiss'],note:'How do we know a number is true? Check a claim by dividing, test an explanation against the data, and see why more answers do not always mean a truer survey.'},
+   {n:'Unit 2',t:'Anthropology: Being (IS)',ids:['northsouth','polygons'],note:'One human family in 100 people, and how persons acting freely still shape the communities they live in.'},
+   {n:'Unit 3',t:'Ethics: Doing (OUGHT)',ids:['lifeworth','tipping'],note:'When a government decides what a life is worth in a cost-benefit test, and how one person’s choice can start or stop a chain.'},
+   {n:'Unit 4',t:'Tattoos on the Heart (HOW?)',ids:['hiddenends'],note:'The people at the margins are the hardest to count. Who goes missing in the averages?'}
   ]}
 ];
 BioLab.TOPIC_ORDER = {1:['polygons','tipping','margin'],2:['budget','lifeworth','taxhistory','hiddenends'],3:['claims','whatmoved'],4:['tabor','foodmath','propertytax'],5:['measurewealth','remittances','northsouth'],6:['pollmiss','turnout'],7:['apportion','districts','electoral']};
