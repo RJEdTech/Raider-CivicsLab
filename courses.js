@@ -9,7 +9,7 @@ BioLab.COURSES = [
   finals:[{t:'US Government final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 1',t:'The Foundations of American Government',ids:['apportion','tabor'],note:'The Great Compromise in numbers: House seats by population, two Senate seats per state. Direct democracy in Colorado: voters set the TABOR cap.'},
-   {n:'Unit 2',t:'The Three Branches of Government',ids:['budget','milspend','taxhistory','lifeworth','foodmath','apportion','deathpenalty'],note:'The power of the purse (including how U.S. military spending compares with the world’s), what agencies weigh when they write a rule, why the House has 435 seats, and the numbers behind a civil liberties debate: the death penalty.'},
+   {n:'Unit 2',t:'The Three Branches of Government',ids:['budget','milspend','aidcuts','taxhistory','lifeworth','foodmath','apportion','deathpenalty'],note:'The power of the purse (including how U.S. military spending compares with the world’s, and what the 2025 foreign aid cuts changed), what agencies weigh when they write a rule, why the House has 435 seats, and the numbers behind a civil liberties debate: the death penalty.'},
    {n:'Unit 3',t:'Political Parties, Elections, & The Media',ids:['apportion','districts','electoral','margin','pollmiss','turnout','turnoutgap','claims','whatmoved'],note:'Reapportionment, redistricting and gerrymandering, the Electoral College and winner-take-all, then polls, turnout, gaps between groups and checking the numbers in the news.'},
    {n:'Final',t:'The Colorado ballot',ids:['tabor','propertytax','turnout'],note:'The math behind measures Colorado voters decide.'}
   ]},
@@ -28,7 +28,7 @@ BioLab.COURSES = [
    {n:'Unit 2',t:'Economic Indicators and the Business Cycle',ids:['measurewealth','northsouth','milspend'],note:'What GDP counts and leaves out, mean vs. median, comparing countries at purchasing-power parity, and spending as a share of GDP.'},
    {n:'Unit 3',t:'National Income and Price Determination',ids:['budget','taxhistory'],note:'Fiscal policy: where federal spending goes and how tax rates have changed since 1913.'},
    {n:'Unit 5',t:'Long-Run Consequences of Stabilization Policies',ids:['budget','tabor'],note:'Interest on the debt as a share of the budget, and a state rule that caps revenue growth.'},
-   {n:'Unit 6',t:'Open Economy: International Trade and Finance',ids:['remittances','northsouth'],note:'Money sent across borders, transfer fees, and income gaps between regions.'}
+   {n:'Unit 6',t:'Open Economy: International Trade and Finance',ids:['remittances','northsouth','jubileedebt'],note:'Money sent across borders, transfer fees, income gaps between regions, and what poorer countries pay on what they borrow.'}
   ]},
  {id:'apmicro',name:'AP Microeconomics',blurb:'AP Microeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
   finals:[{t:'AP Microeconomics final review',units:[0],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
@@ -47,7 +47,7 @@ BioLab.COURSES = [
  {id:'socjust',name:'Social Justice',blurb:'Social Justice (dual enrollment). These tools add the numbers to issues the course studies; the course brings the questions.',
   finals:[{t:'Social Justice final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
-   {n:'Issue',t:'Poverty, wealth and the universal destination of goods',ids:['northsouth','measurewealth','remittances','whosehands'],note:'How far apart lives are by birthplace, what counts as wealth, and what families in El Salvador and elsewhere receive when relatives send money home. Then: does it matter whether aid goes to a mother or a father?'},
+   {n:'Issue',t:'Poverty, wealth and the universal destination of goods',ids:['northsouth','measurewealth','jubileedebt','aidcuts','remittances','whosehands'],note:'How far apart lives are by birthplace and what counts as wealth; why the popes asked for debt relief in the Jubilee Year; what the 2025 foreign aid cuts meant for food and disease; what families receive when relatives send money home; and whether it matters if aid goes to a mother or a father.'},
    {n:'Issue',t:'Life and medical ethics',ids:['deathpenalty','lifeworth'],note:'The counts behind the death penalty (executions, exonerations), and how agencies put a number on a life.'},
    {n:'Issue',t:'Homelessness',ids:['pitcount','hiddenends','foodmath'],note:'One night vs. the whole year: what a homelessness count sees and misses. Then why people without a home are hard to count in surveys, and where 100 pounds of surplus food ends up.'},
    {n:'Issue',t:'Just war and military spending',ids:['milspend','budget'],note:'The world’s $2.9 trillion in military spending ranked three ways (total, share of the economy, per person), then the federal budget with defense in people and things.'},
@@ -68,7 +68,7 @@ BioLab.COURSES = [
    {n:'Topic',t:'Dorothy Day and the works of mercy',ids:['pitcount','hiddenends','foodmath'],note:'Counting people without a home on one night and across a year, who official counts miss, and where surplus food goes.'},
    {n:'Topic',t:'Immigration',ids:['claims','remittances','northsouth'],note:'Two opposite claims about immigrants and taxes, checked with one method; the cost of sending money home; and what a child can expect depending on where she is born.'},
    {n:'Topic',t:'Care for creation and climate in Colorado',ids:['foodmath','propertytax','tabor'],note:'Wasted food and its emissions, plus how Colorado raises and limits the money behind any state plan.'},
-   {n:'Topic',t:'Advocacy Day: making the case',ids:['budget','margin','tipping','turnout'],note:'Where federal money goes, how few votes can decide a race, how one person can tip a group, and who actually votes.'}
+   {n:'Topic',t:'Advocacy Day: making the case',ids:['budget','aidcuts','margin','tipping','turnout'],note:'Where federal money goes, how few votes can decide a race, how one person can tip a group, and who actually votes.'}
   ]},
  {id:'blackhist',name:'Black History',blurb:'Black History, in the order your class covers it. These tools put numbers on maps, votes and money the course studies.',
   finals:[{t:'Black History final review',units:[0,1,2],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
@@ -82,11 +82,11 @@ BioLab.COURSES = [
   units:[
    {n:'Unit 1',t:'Epistemology: Questioning (TRUTH?)',ids:['claims','crimecount','whatmoved','pollmiss'],note:'How do we know a number is true? Check a claim by dividing, ask what a count cannot see, test an explanation against the data, and see why more answers do not always mean a truer survey.'},
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Unit 2',t:'Anthropology: Being (IS)',ids:['northsouth','polygons'],note:'One human family in 100 people, and how persons acting freely still shape the communities they live in.'},
-   {n:'Unit 3',t:'Ethics: Doing (OUGHT)',ids:['lifeworth','deathpenalty','tipping'],note:'When a government decides what a life is worth in a cost-benefit test, what the numbers can and cannot settle about the death penalty, and how one person’s choice can start or stop a chain.'},
+   {n:'Unit 3',t:'Ethics: Doing (OUGHT)',ids:['lifeworth','deathpenalty','jubileedebt','tipping'],note:'When a government decides what a life is worth in a cost-benefit test, what the numbers add to the Church’s teaching on the death penalty, why the popes asked rich nations to forgive poor countries’ debts, and how one person’s choice can start or stop a chain.'},
    {n:'Unit 4',t:'Tattoos on the Heart (HOW?)',ids:['hiddenends','pitcount'],note:'The people at the margins are the hardest to count. Who goes missing in the averages, and how many people pass through homelessness in a year when one night counts only some of them?'}
   ]}
 ];
-BioLab.TOPIC_ORDER = {1:['polygons','tipping','margin','redlining'],2:['budget','milspend','lifeworth','taxhistory','hiddenends'],3:['claims','whatmoved','crimecount','pitcount','deathpenalty'],4:['tabor','foodmath','propertytax'],5:['measurewealth','whosehands','remittances','northsouth'],6:['pollmiss','turnout','turnoutgap'],7:['apportion','districts','electoral','seatsvotes']};
+BioLab.TOPIC_ORDER = {1:['polygons','tipping','margin','redlining'],2:['budget','milspend','aidcuts','lifeworth','taxhistory','hiddenends'],3:['claims','whatmoved','crimecount','pitcount','deathpenalty'],4:['tabor','foodmath','propertytax'],5:['measurewealth','jubileedebt','whosehands','remittances','northsouth'],6:['pollmiss','turnout','turnoutgap'],7:['apportion','districts','electoral','seatsvotes']};
 BioLab.setSections({units:{},extra:{1:'Small choices, big patterns',2:'Where the money goes: budgets and taxes',3:'Does the math hold up?',4:'Colorado and creation',5:'One human family',6:'Counting the people: polls and turnout',7:'Representation by the numbers',11:'Go further'},order:[1,7,6,2,3,4,5,11],further:11,unitPrefix:''});
 (function(){const P={};Object.keys(BioLab.TOPIC_ORDER).forEach(k=>BioLab.TOPIC_ORDER[k].forEach(id=>P[id]=+k));
  BioLab.defs.forEach(d=>{if(P[d.id]!==undefined)d.apUnit=P[d.id];});
