@@ -31,9 +31,8 @@ BioLab.COURSES = [
    {n:'Unit 6',t:'Open Economy: International Trade and Finance',ids:['remittances','northsouth','jubileedebt'],note:'Money sent across borders, transfer fees, income gaps between regions, and what poorer countries pay on what they borrow.'}
   ]},
  {id:'apmicro',name:'AP Microeconomics',blurb:'AP Microeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
-  finals:[{t:'AP Microeconomics final review',units:[0,1],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
+  finals:[{t:'AP Microeconomics final review',units:[0],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
-   {n:'Unit 5',t:'Factor Markets',ids:['immigecon'],note:'The labor market: what happens to wages and jobs when the supply of workers grows, and who bears the costs.'},
    {n:'Unit 6',t:'Market Failure and the Role of Government',ids:['northsouth','hiddenends','taxhistory','redlining','lifeworth','propertytax','foodmath'],note:'Income inequality (Lorenz curve and Gini), progressive taxes, cost-benefit analysis, public goods like schools, and food waste as an externality (the emissions no one pays for).'}
   ]},
  {id:'soc',name:'Sociology',blurb:'Sociology, in the order your class covers it. These tools put numbers on what sociologists study: who gets counted, how groups sort themselves, and what money and class do.',
@@ -43,7 +42,7 @@ BioLab.COURSES = [
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Unit 2',t:'Socialization and social interaction',ids:['tipping','polygons'],note:'Are we free? How one person’s choice depends on how many others have already chosen, and how mild preferences add up to patterns nobody chose.'},
    {n:'Unit 3',t:'Social stratification and social class',ids:['hiddenends','measurewealth','pitcount','redlining','taxhistory','propertytax','whatmoved'],note:'Mean vs. median income, who the poverty numbers miss, wealth vs. income, how a 1938 loan map still shows in homeownership and wealth, how tax rules changed for each class, and how property tax ties school money to where you live.'},
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Unit 4',t:'Gender and race',ids:['turnoutgap','whosehands','mutuality','polygons','redlining','districts'],note:'Reading a gap between groups (women and men voting), whether money in a woman’s or a man’s hands is spent differently, how neighborhoods can sort even when no one wants them sorted, and how lending maps and district lines shaped them.'},
-   {n:'Unit 5',t:'Deviance, crime and social control',ids:['crimecount','secondchances','claims','immigecon','whatmoved','deathpenalty'],note:'The dark figure: how much crime never reaches police records. Then check claims by dividing, test what moves a number, and read the counts behind the death penalty.'}
+   {n:'Unit 5',t:'Deviance, crime and social control',ids:['crimecount','secondchances','whatmoved','deathpenalty'],note:'The dark figure: how much crime never reaches police records. Then check claims by dividing, test what moves a number, and read the counts behind the death penalty.'}
   ]},
  {id:'socjust',name:'Social Justice',blurb:'Social Justice (dual enrollment). These tools add the numbers to issues the course studies; the course brings the questions.',
   finals:[{t:'Social Justice final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
@@ -52,7 +51,7 @@ BioLab.COURSES = [
    {n:'Issue',t:'Life and medical ethics',ids:['walkwithmoms','deathpenalty','lifeworth'],note:'Abortion from a pro-life stance: who faces the decision, the reasons women give, and what the evidence says reduces abortions. Then the counts behind the death penalty, and how agencies put a number on a life.'},
    {n:'Issue',t:'Homelessness',ids:['pitcount','hiddenends','foodmath'],note:'One night vs. the whole year: what a homelessness count sees and misses. Then why people without a home are hard to count in surveys, and where 100 pounds of surplus food ends up.'},
    {n:'Issue',t:'Just war and military spending',ids:['milspend','budget'],note:'The world’s $2.9 trillion in military spending ranked three ways (total, share of the economy, per person), then the federal budget with defense in people and things.'},
-   {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Issue',t:'Racism, immigration and other issues',ids:['redlining','twohomes','greenwood','inventors','mutuality','slaveryfounding','polygons','tipping','claims','immigecon'],note:'How 1938 lending maps still show in homeownership and wealth, how mild preferences can still sort a town, and two opposite claims about immigrants and taxes checked with the same math.'}
+   {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Issue',t:'Racism, immigration and other issues',ids:['redlining','twohomes','greenwood','inventors','mutuality','slaveryfounding','polygons','tipping'],note:'How 1938 lending maps still show in homeownership and wealth, and how mild preferences can still sort a town.'}
   ]},
  {id:'apcomp',name:'AP Comparative Government',blurb:'AP Comparative Government and Politics, country by country in the order your class covers them. Good practice for the quantitative questions on the exam.',
   finals:[{t:'AP Comparative Government final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
@@ -67,7 +66,7 @@ BioLab.COURSES = [
   finals:[{t:'Advocacy and Social Change final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Topic',t:'Dorothy Day and the works of mercy',ids:['pitcount','walkwithmoms','hiddenends','foodmath'],note:'Counting people without a home on one night and across a year, walking with mothers in need, who official counts miss, and where surplus food goes.'},
-   {n:'Topic',t:'Immigration',ids:['claims','remittances','northsouth'],note:'Two opposite claims about immigrants and taxes, checked with one method; the cost of sending money home; and what a child can expect depending on where she is born.'},
+   {n:'Topic',t:'Immigration',ids:['remittances','northsouth'],note:'The cost of sending money home, and what a child can expect depending on where she is born.'},
    {n:'Topic',t:'Care for creation and climate in Colorado',ids:['foodmath','propertytax','tabor'],note:'Wasted food and its emissions, plus how Colorado raises and limits the money behind any state plan.'},
    {n:'Topic',t:'Advocacy Day: making the case',ids:['budget','aidcuts','margin','tipping','turnout'],note:'Where federal money goes, how few votes can decide a race, how one person can tip a group, and who actually votes.'}
   ]},
@@ -81,7 +80,7 @@ BioLab.COURSES = [
  {id:'jrtheo',name:'Junior Theology',blurb:'Junior Theology. These tools give the units’ questions something concrete to test; the course brings the questions.',
   finals:[{t:'Junior Theology final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
-   {n:'Unit 1',t:'Epistemology: Questioning (TRUTH?)',ids:['claims','crimecount','whatmoved','pollmiss'],note:'How do we know a number is true? Check a claim by dividing, ask what a count cannot see, test an explanation against the data, and see why more answers do not always mean a truer survey.'},
+   {n:'Unit 1',t:'Epistemology: Questioning (TRUTH?)',ids:['crimecount','whatmoved','pollmiss'],note:'How do we know a number is true? Ask what a count cannot see, test an explanation against the data, and see why more answers do not always mean a truer survey.'},
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Unit 2',t:'Anthropology: Being (IS)',ids:['northsouth','polygons'],note:'One human family in 100 people, and how persons acting freely still shape the communities they live in.'},
    {n:'Unit 3',t:'Ethics: Doing (OUGHT)',ids:['walkwithmoms','lifeworth','deathpenalty','jubileedebt','tipping'],note:'Protecting life from conception and walking with mothers in need, when a government decides what a life is worth in a cost-benefit test, what the numbers add to the Church’s teaching on the death penalty, why the popes asked rich nations to forgive poor countries’ debts, and how one person’s choice can start or stop a chain.'},
    {n:'Unit 4',t:'Tattoos on the Heart (HOW?)',ids:['secondchances','hiddenends','pitcount'],note:'The people at the margins are the hardest to count. What happens after prison, and does a job help? Who goes missing in the averages, and how many people pass through homelessness in a year when one night counts only some of them?'}
