@@ -136,9 +136,11 @@ While they wait, a cue above the buttons says what to look at ("Watch the model"
 ## Final review paths
 A course in `courses.js` can carry `finals:[{t, units, note}]`. Each becomes a path at `#f-<courseId>-<k>` and a button at the top of the course view. `units` lists unit indexes; an entry can be `[index, ['toolId',...]]` to take only some of that unit's tools. A final path keeps only practice steps: Test yourself for Learn it tools, Review questions otherwise, and Free-response practice where it exists. Tools with no questions are left off.
 
-## CivicsLab only: step layers (`stepnote.js`, Nov 14, 2026)
-`stepnote.js` loads after `engine.js`. Wrap a definition with `BioLab.register(BioLab.stepWrap(SIM))`, then give a tour step any of:
-- `stn: {rings:[[x,y,w,h]], card:{x,y,w,title,lines,bars,anchor:'bottom'}, <flag>:true}`: red outlines and a card drawn only while that step is on screen. A tool's `draw` can read a flag with `BioLab.stepFlag(sim,'flag')` to hide or add a layer.
-- `stnSet: {control: value}`: values set before the step's own `setup`.
-- `stnFocus: [x,y,w,h]` or `'none'`: replaces the step's focus box.
-Use it so every walkthrough step draws something new. New tools use the `sim.tst` stage pattern instead.
+## Math cards, typeset powers and "Letters used" (Nov 16, 2026)
+From teacher feedback: Colin Downs (AP Precalculus) asked for defined variables, typeset formulas, why a model fits and how its function behaves; Tom Flynn (Personal Finance) said students could not tell where the letters in the formulas came from.
+
+1. **Math card** (`mathcards.js`, `BioLab.addMath({id:{f,v,why,beh,solve}})`): `f` the model, `v` `[[symbol, meaning]]` for every letter, `why` why this model and not its neighbor, `beh` how the function behaves (rate of change, end behavior, asymptotes), `solve` the model solved for each unknown. Math type: `` `x` `` italic variable, `^{..}` superscript, `_{..}` subscript (`BioLab.mfx`). It sits under the Use it panel. Guided: hidden until the gut answer is locked, then opens. Full lab and Review: open. Hidden in games and virtual labs.
+2. **"Letters used"** under a walkthrough step: every card variable the step's text uses as math (next to an operator, digit, bracket or sub/superscript) is listed with its meaning. A tool without a card shows nothing.
+3. **Typeset powers:** text nodes in a tool's section are scanned as they appear, and `x^(t/h)` or `2^bits` become real superscripts. Code, inputs and spreadsheet cells (`rjs*`, `[data-nosup]`) are skipped. Canvas text is not touched: use Unicode superscripts or draw them.
+
+**Authoring rules for every math tool:** name every letter in words before or where it is used; say why this model fits and not the one next to it; show how the function behaves; give the model solved for each unknown; let the picture lead to the math students write.
