@@ -87,7 +87,7 @@ const SIM={
  narrate(sim){if(!shown(sim))return `In 1950 the median U.S. home was worth <b>$7,354</b>. How many times more was it worth in 2000? Your gut right now: ${f1(sim.p.guess)}×.`;
   return `$119,600 ÷ $7,354 ≈ <b>${f1(G)}×</b> in 50 years (${f1(REAL)}× after inflation). A family turned away from a loan in 1950 missed that growth. Today the White–Black homeownership gap is <b>${f1(75.1-44.2)} points</b>.`;},
  gut:{better:'lower',controls:['guess'],
-  ask:{bio:'In 1950 the median U.S. home was worth $7,354. By 2000, how many times more do you think the median home was worth? Drag to your gut guess, then lock it in.',honors:'Median home value: $7,354 in 1950. Drag to your gut guess of the growth factor to 2000, then lock it in.'},
+  ask:{bio:'In 1950 the median U.S. home was worth $7,354. By 2000, how many times more do you think the median home was worth? Drag to your gut guess, then lock it in.',honors:'Median home value: $7,354 in 1950. Drag to your gut guess of how many times bigger it got by 2000 (the growth factor), then lock it in.'},
   hint:{bio:'Lock in your gut. Then you will work out the growth factor yourself.'},
   lock(sim){return {v:Math.abs(sim.p.guess-G),guess:sim.p.guess,label:`${f1(sim.p.guess)} times`};},
   solve(sim){sim.p.guess=+G.toFixed(1);return {v:0,guess:G,label:`${f1(G)} times ($7,354 → $119,600)`};},

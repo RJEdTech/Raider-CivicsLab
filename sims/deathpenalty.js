@@ -84,7 +84,7 @@ const SIM={
   return `DPIC counts <b>${f0(D.exon)}</b> people exonerated from death row since 1973: about <b>1 for every ${f1(RATIO)} executions</b>. Executions peaked at 98 in 1999 and rose to 47 in 2025, while new death sentences fell to ${D.new25}.`;},
  gut:{better:'lower',controls:['guess'],
   ask:{bio:'Since 1977, the U.S. has carried out 1,661 executions. Since 1973, how many people sentenced to death have later been exonerated: cleared and released? Drag the slider to your gut guess, then lock it in.',
-   honors:'1,661 executions since 1977. Drag the slider to your gut guess of how many people sentenced to death since 1973 were later exonerated, then lock it in.'},
+   honors:'1,661 executions since 1977. Drag the slider to your gut guess of how many people sentenced to death since 1973 were later cleared of the crime and freed (exonerated), then lock it in.'},
   hint:{bio:'Lock in your gut. Then you will turn the two counts into a ratio yourself.'},
   lock(sim){return {v:Math.abs(sim.p.guess-D.exon),guess:sim.p.guess,label:`${f0(sim.p.guess)} people`};},
   solve(sim){sim.p.guess=D.exon;return {v:0,guess:D.exon,label:`${f0(D.exon)} people (DPIC)`};},
