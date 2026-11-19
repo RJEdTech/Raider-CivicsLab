@@ -5,7 +5,12 @@
    Discipleship & Social Justice is no longer offered; Social Justice replaced it. Each unit lists the tools
    whose math that unit uses. */
 BioLab.COURSES = [
- {id:'usgov',name:'US Government',blurb:'United States Government, in the order your class covers it. Each unit lists the tools that put numbers on what you are studying.',
+ {id:'apes',name:'AP Environmental Science',blurb:'AP Environmental Science asks science, government and economics questions at once. These tools put numbers on the choices behind energy, land and food.',
+  units:[
+   {n:'Unit 5',t:'Land and Water Use',ids:['foodmath'],note:'Wasted food at home and up the EPA Wasted Food Scale.'},
+   {n:'Unit 6',t:'Energy Resources and Consumption',ids:['builtthere'],note:'Why solar panels and batteries invented in the U.S. are mostly made in China, and what happens when investment stops.'}
+  ]},
+ {id:'usgov',further:['builtthere'],name:'US Government',blurb:'United States Government, in the order your class covers it. Each unit lists the tools that put numbers on what you are studying.',
   finals:[{t:'US Government final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 1',t:'The Foundations of American Government',ids:['apportion','slaveryfounding','tabor'],note:'The Great Compromise in numbers: House seats by population, two Senate seats per state. Slavery and the three-fifths clause by the numbers. Direct democracy in Colorado: voters set the TABOR cap.'},
@@ -13,7 +18,7 @@ BioLab.COURSES = [
    {n:'Unit 3',t:'Political Parties, Elections, & The Media',ids:['apportion','districts','electoral','margin','pollmiss','turnout','turnoutgap','claims','whatmoved'],note:'Reapportionment, redistricting and gerrymandering, the Electoral College and winner-take-all, then polls, turnout, gaps between groups and checking the numbers in the news.'},
    {n:'Final',t:'The Colorado ballot',ids:['tabor','propertytax','turnout'],note:'The math behind measures Colorado voters decide.'}
   ]},
- {id:'apgov',name:'AP US Government',blurb:'AP U.S. Government and Politics, by the units your class follows.',
+ {id:'apgov',further:['builtthere'],name:'AP US Government',blurb:'AP U.S. Government and Politics, by the units your class follows.',
   finals:[{t:'AP US Government final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 1',t:'Foundations of American Democracy',ids:['apportion','slaveryfounding','tabor'],note:'Representation and federalism: how population becomes seats (and what the three-fifths clause added), and how a state constitution limits a state budget.'},
@@ -22,7 +27,7 @@ BioLab.COURSES = [
    {n:'Unit 4',t:'American Political Ideologies and Beliefs',ids:['pollmiss','margin','turnoutgap','claims'],note:'Public opinion polling: who answers, margins of error, and claims built on survey numbers.'},
    {n:'Unit 5',t:'Political Participation',ids:['turnout','turnoutgap','electoral','districts','seatsvotes','whatmoved'],note:'Who votes and the gaps between groups, how votes become electoral votes and seats, and how other systems would turn the same votes into seats.'}
   ]},
- {id:'apmacro',name:'AP Macroeconomics',blurb:'AP Macroeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
+ {id:'apmacro',further:['builtthere'],name:'AP Macroeconomics',blurb:'AP Macroeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
   finals:[{t:'AP Macroeconomics final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 2',t:'Economic Indicators and the Business Cycle',ids:['measurewealth','northsouth','milspend','mutuality'],note:'What GDP counts and leaves out, mean vs. median, comparing countries at purchasing-power parity, and spending as a share of GDP.'},
@@ -30,7 +35,7 @@ BioLab.COURSES = [
    {n:'Unit 5',t:'Long-Run Consequences of Stabilization Policies',ids:['budget','tabor','inventors'],note:'Interest on the debt as a share of the budget, a state rule that caps revenue growth, and economic growth: what blocked inventors cost everyone.'},
    {n:'Unit 6',t:'Open Economy: International Trade and Finance',ids:['remittances','northsouth','jubileedebt'],note:'Money sent across borders, transfer fees, income gaps between regions, and what poorer countries pay on what they borrow.'}
   ]},
- {id:'apmicro',name:'AP Microeconomics',blurb:'AP Microeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
+ {id:'apmicro',further:['builtthere'],name:'AP Microeconomics',blurb:'AP Microeconomics, by College Board unit. Only units with a CivicsLab tool are listed.',
   finals:[{t:'AP Microeconomics final review',units:[0],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 6',t:'Market Failure and the Role of Government',ids:['northsouth','hiddenends','taxhistory','redlining','lifeworth','propertytax','foodmath'],note:'Income inequality (Lorenz curve and Gini), progressive taxes, cost-benefit analysis, public goods like schools, and food waste as an externality (the emissions no one pays for).'}
@@ -44,7 +49,7 @@ BioLab.COURSES = [
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Unit 4',t:'Gender and race',ids:['turnoutgap','whosehands','mutuality','polygons','redlining','districts'],note:'Reading a gap between groups (women and men voting), whether money in a woman’s or a man’s hands is spent differently, how neighborhoods can sort even when no one wants them sorted, and how lending maps and district lines shaped them.'},
    {n:'Unit 5',t:'Deviance, crime and social control',ids:['crimecount','secondchances','whatmoved','deathpenalty'],note:'The dark figure: how much crime never reaches police records. Then check claims by dividing, test what moves a number, and read the counts behind the death penalty.'}
   ]},
- {id:'socjust',name:'Social Justice',blurb:'Social Justice (dual enrollment). These tools add the numbers to issues the course studies; the course brings the questions.',
+ {id:'socjust',further:['builtthere'],name:'Social Justice',blurb:'Social Justice (dual enrollment). These tools add the numbers to issues the course studies; the course brings the questions.',
   finals:[{t:'Social Justice final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Issue',t:'Poverty, wealth and the universal destination of goods',ids:['northsouth','measurewealth','jubileedebt','aidcuts','remittances','whosehands'],note:'How far apart lives are by birthplace and what counts as wealth; why the popes asked for debt relief in the Jubilee Year; what the 2025 foreign aid cuts meant for food and disease; what families receive when relatives send money home; and whether it matters if aid goes to a mother or a father.'},
@@ -53,7 +58,7 @@ BioLab.COURSES = [
    {n:'Issue',t:'Just war and military spending',ids:['milspend','budget'],note:'The world’s $2.9 trillion in military spending ranked three ways (total, share of the economy, per person), then the federal budget with defense in people and things.'},
    {links:[{href:'https://ncase.me/polygons/',title:'Play the original: Parable of the Polygons (Vi Hart and Nicky Case)'}],n:'Issue',t:'Racism, immigration and other issues',ids:['redlining','twohomes','greenwood','inventors','mutuality','slaveryfounding','polygons','tipping'],note:'How 1938 lending maps still show in homeownership and wealth, and how mild preferences can still sort a town.'}
   ]},
- {id:'apcomp',name:'AP Comparative Government',blurb:'AP Comparative Government and Politics, country by country in the order your class covers them. Good practice for the quantitative questions on the exam.',
+ {id:'apcomp',further:['builtthere'],name:'AP Comparative Government',blurb:'AP Comparative Government and Politics, country by country in the order your class covers them. Good practice for the quantitative questions on the exam.',
   finals:[{t:'AP Comparative Government final review',units:[0,1,2,3,4],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Unit 1',t:'Introduction, indicators and Mexico',ids:['measurewealth','northsouth','hiddenends','remittances','whosehands'],note:'GDP per person, HDI and the Gini coefficient: what each indicator counts and misses. Mexico is one of the largest receivers of money sent home, and its cash transfer program pays mothers: does that matter?'},
@@ -62,7 +67,7 @@ BioLab.COURSES = [
    {n:'Unit 4',t:'Nigeria',ids:['northsouth','measurewealth','apportion','seatsvotes'],note:'Where Nigeria sits in a world of 100 people, ranking countries by money or by health and schooling, dividing seats among states by population, and the rule that a president needs 25% in two-thirds of the states.'},
    {n:'Unit 5',t:'China and Iran',ids:['measurewealth','turnout','electoral','milspend'],note:'Growth and development indicators, then elections compared: who can vote, who does, and how votes become an office.'}
   ]},
- {id:'advocacy',name:'Advocacy and Social Change',blurb:'Advocacy and Social Change. Good advocacy needs the numbers right: these tools check the math behind the issues you will speak about.',
+ {id:'advocacy',further:['builtthere'],name:'Advocacy and Social Change',blurb:'Advocacy and Social Change. Good advocacy needs the numbers right: these tools check the math behind the issues you will speak about.',
   finals:[{t:'Advocacy and Social Change final review',units:[0,1,2,3],note:'Covers every unit that has a Raider Labs tool. Your teacher decides what is on the final, so check the study guide.'}],
   units:[
    {n:'Topic',t:'Dorothy Day and the works of mercy',ids:['pitcount','walkwithmoms','hiddenends','foodmath'],note:'Counting people without a home on one night and across a year, walking with mothers in need, who official counts miss, and where surplus food goes.'},
@@ -86,7 +91,7 @@ BioLab.COURSES = [
    {n:'Unit 4',t:'Tattoos on the Heart (HOW?)',ids:['secondchances','hiddenends','pitcount'],note:'The people at the margins are the hardest to count. What happens after prison, and does a job help? Who goes missing in the averages, and how many people pass through homelessness in a year when one night counts only some of them?'}
   ]}
 ];
-BioLab.TOPIC_ORDER = {1:['polygons','tipping','margin','redlining','twohomes','greenwood','inventors','mutuality'],2:['budget','milspend','aidcuts','lifeworth','taxhistory','hiddenends'],3:['claims','whatmoved','crimecount','secondchances','pitcount','walkwithmoms','deathpenalty'],4:['tabor','foodmath','propertytax'],5:['immigecon','measurewealth','jubileedebt','whosehands','remittances','northsouth'],6:['pollmiss','turnout','turnoutgap'],7:['apportion','slaveryfounding','districts','electoral','seatsvotes']};
+BioLab.TOPIC_ORDER = {11:['builtthere'],1:['polygons','tipping','margin','redlining','twohomes','greenwood','inventors','mutuality'],2:['budget','milspend','aidcuts','lifeworth','taxhistory','hiddenends'],3:['claims','whatmoved','crimecount','secondchances','pitcount','walkwithmoms','deathpenalty'],4:['tabor','foodmath','propertytax'],5:['immigecon','measurewealth','jubileedebt','whosehands','remittances','northsouth'],6:['pollmiss','turnout','turnoutgap'],7:['apportion','slaveryfounding','districts','electoral','seatsvotes']};
 BioLab.setSections({units:{},extra:{1:'Small choices, big patterns',2:'Where the money goes: budgets and taxes',3:'Does the math hold up?',4:'Colorado and creation',5:'One human family',6:'Counting the people: polls and turnout',7:'Representation by the numbers',11:'Go further'},order:[1,7,6,2,3,4,5,11],further:11,unitPrefix:''});
 (function(){const P={};Object.keys(BioLab.TOPIC_ORDER).forEach(k=>BioLab.TOPIC_ORDER[k].forEach(id=>P[id]=+k));
  BioLab.defs.forEach(d=>{if(P[d.id]!==undefined)d.apUnit=P[d.id];});
