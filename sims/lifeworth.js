@@ -80,7 +80,7 @@ const VIEWS=`<p><b>A statistical life and a real person.</b> The Catechism teach
  <p><b>Discuss:</b> Can a community honor every person’s dignity and still have to choose which safety projects to fund? What should guide that choice? There is no answer key for this question.</p>`;
 
 const SIM={
- id:'lifeworth',hash:'lifeworth',apUnit:2,order:2,tab:'What is a life worth?',kind:'Simulation',
+ id:'lifeworth',hash:'lifeworth',apUnit:2,order:2,tab:'What is a life worth?',kind:'Simulation',next:['vaccinepays'],
  skills:{bio:'Expected value: rate × time × value · Algebra 1 (Unit 2), Statistics (Chapter 6)',honors:'A linear function and its break-even point (cost ÷ lives) · Algebra 1 (Unit 4), Statistics (Chapter 6)',ap:'A linear net-benefit function and the Poisson model · Algebra 1 (Unit 4), AP Statistics (Unit 4)'},
  card:'Decide by feel whether a safety project near a school is worth building, then run the government’s cost-benefit test and see how the answer depends on one number.',
  title:'What is a life worth?',
