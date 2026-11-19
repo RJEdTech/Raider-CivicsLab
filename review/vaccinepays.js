@@ -13,6 +13,8 @@ vaccinepays:{
    steps:['1 − 1/12 = 0.9167.','91.7%.']},
   {id:'cst',kind:'real',lvl:'honors',q:'What does Catholic social teaching give in a vaccine debate?',choices:['The exact school rule to pass','Principles that form consciences (life and dignity, the vulnerable first, solidarity, freedom); experts and citizens work out the policy','Nothing; it stays out of public life'],correct:1,
    steps:['The principles are the true north.','Turning them into policy takes doctors, scientists, citizens and lawmakers.']},
+  {id:'pays',kind:'real',lvl:'bio',q:'The CDC says routine vaccines saved $2.7 trillion. What does that number count?',choices:['What each child’s life is worth','Medical bills, lost work and lost earnings that were avoided','Only what the vaccines cost'],correct:1,
+   steps:['“Savings” counts money: bills and earnings.','It does not measure a person’s worth, which the Church roots in being made in God’s image.']},
   {id:'ext',kind:'ap',lvl:'ap',q:'Why do economists call vaccination a positive externality?',choices:['Vaccines are made outside the U.S.','Part of the benefit goes to people other than the person vaccinated','Vaccines cost less than treatment'],correct:1,
    steps:['Each vaccinated person lowers everyone else’s risk.','A buyer counts only their own benefit, so markets alone buy too little.']}
  ]
